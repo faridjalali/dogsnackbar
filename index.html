@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dog Snack Bar Tycoon</title>
+    <style>
+        :root {
+            --bg-color: #8ecae6;
+            --floor-color: #fcefb4;
+            --counter-color: #fb8500;
+            --text-color: #023047;
+            --btn-color: #219ebc;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* HUD */
+        #header {
+            width: 100%;
+            background: #fff;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 1.5rem;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            z-index: 10;
+        }
+
+        #money-display {
+            color: #2ca02c;
+        }
+
+        /* Game Area */
+        #game-area {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            flex-grow: 1;
+            background-color: var(--floor-color);
+            border-left: 10px solid #fff;
+            border-right: 10px solid #fff;
+            overflow: hidden;
+        }
+
+        /* Stations */
+        .station {
+            position: absolute;
+            background-color: var(--counter-color);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 0 #b35d00;
+            font-size: 2rem;
+            transition: transform 0.1s;
+        }
+        
+        .station:active {
+            transform: scale(0.95);
+        }
+
+        .progress-bar {
+            width: 80%;
+            height: 6px;
+            background: #333;
+            border-radius: 3px;
+            margin-top: 5px;
+            overflow: hidden;
+            display: none;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: #00ff00;
+            transition: width 0.1s linear;
+        }
+
+        /* Entities */
+        .dog {
+            position: absolute;
+            font-size: 2.5rem;
+            transition: all 0.5s linear;
+            z-index: 5;
+        }
+
+        .food-item {
+            position: absolute;
+            font-size: 1.5rem;
+            z-index: 6;
+            transition: all 0.5s ease-out;
+        }
+
+        /* Upgrade Menu */
+        #upgrade-menu {
+            width: 100%;
+            max-width: 600px;
+            background: white;
+            padding: 10px;
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            border-top: 4px solid #ccc;
+        }
+
+        .upgrade-card {
+            min-width: 140px;
+            background: #f0f0f0;
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 2px solid #ddd;
+            text-align: center;
+        }
+
+        .upgrade-card:hover {
+            border-color: var(--btn-color);
+        }
+
+        .upgrade-card.disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        .price-tag {
+            font-weight: bold;
+            color: #d35400;
+        }
+
+        /* Floating Text */
+        .floating-text {
+            position: absolute;
+            color: #27ae60;
+            font-weight: bold;
+            font-size: 1.2rem;
+            animation: floatUp 1s forwards;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        @keyframes floatUp {
+            0% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(-50px); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="header">
+        <span>🐶 Dog Snack Bar</span>
+        <span id="money-display">$0</span>
+    </div>
+
+    <div id="game-area">
+        </div>
+
+    <div id="upgrade-menu">
+        </div>
+
+<script>
+    /**
+     * CONFIGURATION & STATE
+     */
+    const GAME_CONFIG = {
+        stations: [
+            { id: 0, name: "Biscuits", emoji: "🦴", x: 200, y: 150, basePrice: 5, baseTime: 2000, unlockCost: 0, upgradeCost: 10, isUnlocked: true, level: 1, automated: false },
+            { id: 1, name: "Coffee", emoji: "☕", x: 200, y: 300, basePrice: 25, baseTime: 4000, unlockCost: 200, upgradeCost: 150, isUnlocked: false, level: 1, automated: false },
+            { id: 2, name: "Steak", emoji: "🥩", x: 200, y: 450, basePrice: 100, baseTime: 6000, unlockCost: 1000, upgradeCost: 800, isUnlocked: false, level: 1, automated: false }
+        ],
+        dogEmojis: ["🐶", "🐕", "🐩", "🐕‍🦺", "🌭", "🐺"],
+        customerSpawnRate: 3000 // ms
+    };
+
+    let state = {
+        money: 0,
+        customers: []
+    };
+
+    const gameArea = document.getElementById('game-area');
+    const moneyDisplay = document.getElementById('money-display');
+    const upgradeMenu = document.getElementById('upgrade-menu');
+
+    /**
+     * CORE CLASSES
+     */
+
+    class Station {
+        constructor(config) {
+            this.config = config;
+            this.isBusy = false;
+            
+            // DOM Element
+            this.el = document.createElement('div');
+            this.el.className = 'station';
+            this.el.style.left = config.x + 'px';
+            this.el.style.top = config.y + 'px';
+            this.el.style.width = '80px';
+            this.el.style.height = '80px';
+            
+            // Inner content
+            this.label = document.createElement('div');
+            this.label.innerText = config.emoji;
+            this.el.appendChild(this.label);
+
+            // Progress Bar
+            this.progressBox = document.createElement('div');
+            this.progressBox.className = 'progress-bar';
+            this.progressFill = document.createElement('div');
+            this.progressFill.className = 'progress-fill';
+            this.progressBox.appendChild(this.progressFill);
+            this.el.appendChild(this.progressBox);
+
+            // Click listener for Manual cooking
+            this.el.addEventListener('click', () => {
+                if(this.config.isUnlocked && !this.isBusy) {
+                    this.cook();
+                }
+            });
+
+            this.updateVisuals();
+            gameArea.appendChild(this.el);
+        }
+
+        updateVisuals() {
+            if (!this.config.isUnlocked) {
+                this.el.style.opacity = '0.3';
+                this.el.style.border = '2px dashed #555';
+                this.label.innerText = `🔒 $${this.config.unlockCost}`;
+            } else {
+                this.el.style.opacity = '1';
+                this.el.style.border = 'none';
+                this.label.innerText = this.config.emoji;
+                // Visual cue for automation
+                if (this.config.automated) {
+                    this.el.style.boxShadow = '0 0 10px gold';
+                }
+            }
+        }
+
+        cook() {
+            if(this.isBusy) return;
+            
+            // Find a customer waiting for this food
+            const targetCustomer = state.customers.find(c => c.wantedStationId === this.config.id && c.state === 'waiting');
+
+            // If not automated, you can cook even without a customer (and waste it), 
+            // but in this game style, usually we cook FOR someone. 
+            // To simplify: Manual clicks always cook. Auto clicks only cook if customer exists.
+            
+            this.isBusy = true;
+            this.progressBox.style.display = 'block';
+            this.progressFill.style.width = '0%';
+            this.progressFill.style.transition = `width ${this.config.baseTime}ms linear`;
+
+            // Force reflow
+            void this.el.offsetWidth; 
+
+            // Start animation
+            this.progressFill.style.width = '100%';
+
+            setTimeout(() => {
+                this.finishCooking(targetCustomer);
+            }, this.config.baseTime);
+        }
+
+        finishCooking(targetCustomer) {
+            this.isBusy = false;
+            this.progressBox.style.display = 'none';
+            this.progressFill.style.width = '0%';
+            this.progressFill.style.transition = 'none';
+
+            // Create food projectile
+            createFood(this.config.x, this.config.y, targetCustomer);
+
+            // Auto-cook loop if automated
+            if(this.config.automated) {
+                this.tryAutoCook();
+            }
+        }
+
+        tryAutoCook() {
+            if(!this.isBusy && this.config.isUnlocked && this.config.automated) {
+                // Only cook if there is a customer waiting for THIS item
+                const hasDemand = state.customers.some(c => c.wantedStationId === this.config.id && c.state === 'waiting');
+                if(hasDemand) {
+                    this.cook();
+                } else {
+                    // Check again shortly
+                    setTimeout(() => this.tryAutoCook(), 500);
+                }
+            }
+        }
+    }
+
+    class Customer {
+        constructor() {
+            this.id = Math.random();
+            this.emoji = GAME_CONFIG.dogEmojis[Math.floor(Math.random() * GAME_CONFIG.dogEmojis.length)];
+            
+            // Choose a random UNLOCKED station to order from
+            const unlockedStations = GAME_CONFIG.stations.filter(s => s.isUnlocked);
+            const targetStation = unlockedStations[Math.floor(Math.random() * unlockedStations.length)];
+            
+            this.wantedStationId = targetStation.id;
+            this.state = 'walking_in'; // walking_in, waiting, leaving
+
+            // Visuals
+            this.el = document.createElement('div');
+            this.el.className = 'dog';
+            this.el.innerText = this.emoji;
+            this.el.style.left = '-50px'; // Start off screen
+            
+            // Randomize Y slightly so they don't stack perfectly
+            this.targetY = targetStation.y; 
+            this.el.style.top = (this.targetY + 20) + 'px'; // Stand slightly below station
+
+            gameArea.appendChild(this.el);
+
+            // Walk in
+            setTimeout(() => {
+                this.el.style.left = (targetStation.x - 100) + 'px'; // Stand to left of station
+                this.state = 'waiting';
+                
+                // Show bubble
+                this.bubble = document.createElement('div');
+                this.bubble.style.position = 'absolute';
+                this.bubble.style.fontSize = '1rem';
+                this.bubble.style.top = '-20px';
+                this.bubble.innerText = '💭' + targetStation.emoji;
+                this.el.appendChild(this.bubble);
+
+                // Trigger auto-cookers to check
+                stationInstances[this.wantedStationId].tryAutoCook();
+
+            }, 100);
+        }
+
+        leave(paidAmount) {
+            this.state = 'leaving';
+            if(this.bubble) this.bubble.remove();
+            
+            // Happy emote
+            this.el.innerText = '🥰';
+            
+            // Floating text money
+            showFloatingText(this.el.style.left, this.el.style.top, `+$${paidAmount}`);
+
+            // Walk away
+            this.el.style.left = '800px'; 
+            
+            // Cleanup
+            setTimeout(() => {
+                this.el.remove();
+                state.customers = state.customers.filter(c => c !== this);
+            }, 2000);
+        }
+    }
+
+    /**
+     * GLOBAL FUNCTIONS
+     */
+
+    let stationInstances = [];
+
+    function init() {
+        // Create Stations
+        GAME_CONFIG.stations.forEach(conf => {
+            stationInstances.push(new Station(conf));
+        });
+
+        // Start Loops
+        setInterval(spawnCustomer, GAME_CONFIG.customerSpawnRate);
+        setInterval(updateUI, 100);
+        updateUI();
+    }
+
+    function spawnCustomer() {
+        // Only spawn if we have unlocked stations
+        if(GAME_CONFIG.stations.some(s => s.isUnlocked)) {
+            // Cap max customers to prevent lag
+            if(state.customers.length < 10) {
+                state.customers.push(new Customer());
+            }
+        }
+    }
+
+    function createFood(startX, startY, customer) {
+        if(!customer || customer.state !== 'waiting') return;
+
+        const food = document.createElement('div');
+        food.className = 'food-item';
+        food.innerText = stationInstances[customer.wantedStationId].config.emoji;
+        food.style.left = startX + 'px';
+        food.style.top = startY + 'px';
+        gameArea.appendChild(food);
+
+        // Animate to customer
+        // We need to read current customer pos in case they moved slightly (not in this version, but good practice)
+        const custRect = customer.el.getBoundingClientRect();
+        const gameRect = gameArea.getBoundingClientRect();
+        const targetX = (custRect.left - gameRect.left);
+        const targetY = (custRect.top - gameRect.top);
+
+        // Trigger animation next frame
+        requestAnimationFrame(() => {
+            food.style.left = targetX + 'px';
+            food.style.top = targetY + 'px';
+        });
+
+        // On arrival
+        setTimeout(() => {
+            food.remove();
+            // Calculate earnings
+            const station = GAME_CONFIG.stations.find(s => s.id === customer.wantedStationId);
+            const amount = Math.floor(station.basePrice * station.level);
+            
+            state.money += amount;
+            customer.leave(amount);
+            updateUI();
+        }, 500);
+    }
+
+    function showFloatingText(x, y, text) {
+        const floatEl = document.createElement('div');
+        floatEl.className = 'floating-text';
+        floatEl.innerText = text;
+        floatEl.style.left = x;
+        floatEl.style.top = y;
+        gameArea.appendChild(floatEl);
+        setTimeout(() => floatEl.remove(), 1000);
+    }
+
+    function updateUI() {
+        moneyDisplay.innerText = `$${state.money}`;
+        renderUpgrades();
+    }
+
+    function renderUpgrades() {
+        // Simple diffing to avoid destroying DOM every frame
+        // Clear current
+        upgradeMenu.innerHTML = '';
+
+        GAME_CONFIG.stations.forEach((station, index) => {
+            const card = document.createElement('div');
+            card.className = 'upgrade-card';
+
+            if(!station.isUnlocked) {
+                // Unlock Card
+                card.innerHTML = `
+                    <div>Unlock ${station.name}</div>
+                    <div class="price-tag">$${station.unlockCost}</div>
+                `;
+                if(state.money < station.unlockCost) card.classList.add('disabled');
+                card.onclick = () => {
+                    if(state.money >= station.unlockCost) {
+                        state.money -= station.unlockCost;
+                        station.isUnlocked = true;
+                        stationInstances[index].updateVisuals();
+                        updateUI();
+                    }
+                };
+            } else {
+                // Upgrade Level Card
+                const currentPrice = Math.floor(station.upgradeCost * Math.pow(1.5, station.level - 1));
+                const autoCost = station.upgradeCost * 5;
+
+                // Level Up Logic
+                card.innerHTML = `
+                    <div><b>${station.name}</b> (Lvl ${station.level})</div>
+                    <div>+Earnings</div>
+                    <div class="price-tag">$${currentPrice}</div>
+                `;
+                if(state.money < currentPrice) card.classList.add('disabled');
+                
+                card.onclick = () => {
+                    if(state.money >= currentPrice) {
+                        state.money -= currentPrice;
+                        station.level++;
+                        // Speed up slightly
+                        station.baseTime = Math.max(500, station.baseTime * 0.95); 
+                        updateUI();
+                    }
+                };
+
+                // Automation Card (Special)
+                if(!station.automated) {
+                    const autoCard = document.createElement('div');
+                    autoCard.className = 'upgrade-card';
+                    autoCard.style.borderColor = 'gold';
+                    autoCard.innerHTML = `
+                        <div>🤖 Auto ${station.name}</div>
+                        <div class="price-tag">$${autoCost}</div>
+                    `;
+                    if(state.money < autoCost) autoCard.classList.add('disabled');
+                    autoCard.onclick = () => {
+                        if(state.money >= autoCost) {
+                            state.money -= autoCost;
+                            station.automated = true;
+                            stationInstances[index].updateVisuals();
+                            stationInstances[index].tryAutoCook();
+                            updateUI();
+                        }
+                    }
+                    upgradeMenu.appendChild(autoCard);
+                }
+            }
+            upgradeMenu.appendChild(card);
+        });
+    }
+
+    // Start Game
+    init();
+
+</script>
+</body>
+</html>

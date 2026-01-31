@@ -2,19 +2,24 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dog Snack Bar: Accurate Tycoon</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Dog Snack Bar: Garden Tycoon</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Varela+Round&display=swap');
+
         :root {
-            --kitchen-bg: #ffe8d6;
-            --floor-bg: #ddbea9;
-            --counter-color: #6b705c;
-            --ui-bg: #fff;
-            --accent: #cb997e;
+            --grass-color: #b8d8be;
+            --road-color: #a8a29e;
+            --house-wall: #ffadad;
+            --house-roof: #ff85a1;
+            --ui-bg: #fffbf0;
+            --btn-orange: #ffb703;
+            --btn-blue: #8ecae6;
+            --text-dark: #4a4e69;
         }
 
         body {
-            font-family: 'Segoe UI', sans-serif;
+            font-family: 'Varela Round', sans-serif;
             background-color: #222;
             margin: 0;
             display: flex;
@@ -26,636 +31,723 @@
 
         #app {
             width: 100%;
-            max-width: 500px;
-            background-color: var(--floor-bg);
+            max-width: 450px; /* Mobile width */
+            background-color: var(--grass-color);
             display: flex;
             flex-direction: column;
             position: relative;
-            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+            box-shadow: 0 0 40px rgba(0,0,0,0.5);
         }
 
-        /* HUD */
-        #header {
-            background: var(--ui-bg);
-            padding: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 2px solid #aaa;
-            z-index: 100;
+        /* --- SCENERY (CSS ART) --- */
+        #scenery-layer {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            overflow: hidden;
         }
-        .stat { font-weight: bold; font-size: 1.1rem; }
 
-        /* GAME WORLD */
+        .road {
+            position: absolute;
+            top: 180px; left: 0; width: 100%; height: 60px;
+            background: var(--road-color);
+            border-top: 4px solid #888;
+            border-bottom: 4px solid #888;
+        }
+
+        /* The House */
+        .house-container {
+            position: absolute;
+            top: 20px; left: 50%;
+            transform: translateX(-50%);
+            width: 280px; height: 180px;
+        }
+        .house-roof {
+            width: 0; height: 0;
+            border-left: 150px solid transparent;
+            border-right: 150px solid transparent;
+            border-bottom: 100px solid var(--house-roof);
+            position: absolute; top: 0; left: -10px;
+            filter: drop-shadow(0 5px 0 rgba(0,0,0,0.1));
+        }
+        .house-wall {
+            width: 240px; height: 100px;
+            background: var(--house-wall);
+            position: absolute; bottom: 0; left: 20px;
+            border: 4px solid #e56b6f;
+            border-bottom: none;
+            display: flex; justify-content: center; align-items: flex-end;
+        }
+        .door {
+            width: 60px; height: 80px;
+            background: #6d4c41;
+            border: 3px solid #3e2723;
+            border-radius: 5px 5px 0 0;
+        }
+
+        /* Trees */
+        .tree {
+            position: absolute;
+            z-index: 50; /* Above road, below UI */
+        }
+        .tree-top {
+            width: 80px; height: 80px;
+            background: #55a630;
+            border-radius: 50%;
+            border: 4px solid #2b5c12;
+            box-shadow: inset -10px -10px 0 rgba(0,0,0,0.1);
+        }
+
+        /* --- GAME ENTITIES --- */
         #game-layer {
             flex-grow: 1;
             position: relative;
             overflow: hidden;
-        }
-
-        /* ZONES */
-        .zone-kitchen {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 200px;
-            background: var(--kitchen-bg);
-            border-bottom: 10px solid var(--counter-color);
-            box-sizing: border-box;
-        }
-
-        .counter-surface {
-            position: absolute;
-            top: 190px; left: 0; width: 100%; height: 10px;
-            z-index: 20;
-        }
-
-        /* ENTITIES */
-        .entity {
-            position: absolute;
-            width: 40px; height: 40px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 24px;
-            transition: top 0.1s linear, left 0.1s linear;
             z-index: 10;
         }
-        
-        .station {
+
+        .entity {
             position: absolute;
-            width: 60px; height: 60px;
-            background: #a5a58d;
-            border: 2px solid #6b705c;
-            border-radius: 8px;
             display: flex; flex-direction: column;
             align-items: center; justify-content: center;
-            font-size: 1.5rem;
+            transition: top 0.1s linear, left 0.1s linear;
         }
-        .station-lvl { font-size: 10px; background: #333; color: white; padding: 1px 4px; border-radius: 4px; margin-top: -5px; }
-
-        .table {
-            position: absolute;
-            width: 50px; height: 50px;
-            background: #b7b7a4;
+        
+        .shadow {
+            position: absolute; bottom: 0;
+            width: 30px; height: 10px;
+            background: rgba(0,0,0,0.2);
             border-radius: 50%;
-            border: 2px solid #6b705c;
         }
 
-        /* BUBBLES */
-        .bubble {
+        .sprite {
+            font-size: 2.5rem;
+            position: relative; bottom: 5px;
+            z-index: 2;
+        }
+
+        /* Stations (Kitchen) */
+        .station-area {
             position: absolute;
-            top: -25px;
-            background: white;
-            padding: 2px 6px;
-            border-radius: 10px;
-            border: 1px solid #333;
-            font-size: 12px;
-            white-space: nowrap;
-            z-index: 100;
+            width: 70px; height: 90px;
+            display: flex; flex-direction: column; align-items: center;
+        }
+        .machine {
+            width: 50px; height: 50px;
+            background: #a98467;
+            border: 3px solid #5d4037;
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.5rem;
+            position: relative;
+            box-shadow: 0 4px 0 #3e2723;
+        }
+        .machine::after { /* Smoke/Steam hint */
+            content: ''; position: absolute; top: -10px; right: -5px;
+            width: 10px; height: 10px; background: #fff; border-radius: 50%; opacity: 0.5;
         }
 
-        /* BOTTOM UI */
-        #controls {
-            height: 250px;
-            background: var(--ui-bg);
-            border-top: 2px solid #ccc;
-            display: flex;
-            flex-direction: column;
+        /* The Checkered Serving Tables (From Screenshot) */
+        .serving-table {
+            position: absolute;
+            width: 100px; height: 40px;
+            background-color: #fff;
+            background-image: 
+                linear-gradient(45deg, #ffcdb2 25%, transparent 25%, transparent 75%, #ffcdb2 75%, #ffcdb2), 
+                linear-gradient(45deg, #ffcdb2 25%, transparent 25%, transparent 75%, #ffcdb2 75%, #ffcdb2);
+            background-position: 0 0, 10px 10px;
+            background-size: 20px 20px;
+            border: 2px solid #e5989b;
+            border-radius: 6px;
+            box-shadow: 0 5px 0 rgba(0,0,0,0.2);
+        }
+        .serving-table.blue {
+            background-image: 
+                linear-gradient(45deg, #bde0fe 25%, transparent 25%, transparent 75%, #bde0fe 75%, #bde0fe), 
+                linear-gradient(45deg, #bde0fe 25%, transparent 25%, transparent 75%, #bde0fe 75%, #bde0fe);
+            border-color: #a2d2ff;
+        }
+
+        /* Bubbles */
+        .bubble {
+            position: absolute; top: -50px;
+            background: #fff; padding: 5px 10px;
+            border-radius: 15px;
+            border: 2px solid #333;
+            font-weight: bold; font-size: 0.9rem;
+            white-space: nowrap; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 100;
+            display: flex; align-items: center; gap: 5px;
+        }
+        .bubble::after {
+            content: ''; position: absolute; bottom: -6px; left: 50%; margin-left: -6px;
+            border-width: 6px 6px 0; border-style: solid; border-color: #333 transparent;
+        }
+        @keyframes popIn { from { transform: scale(0); } to { transform: scale(1); } }
+
+        /* --- UI OVERLAY --- */
+        #top-ui {
+            position: absolute; top: 10px; left: 0; width: 100%;
+            display: flex; justify-content: center; gap: 10px;
             z-index: 200;
         }
-        
-        #tabs { display: flex; border-bottom: 1px solid #ddd; }
-        .tab { flex: 1; padding: 10px; text-align: center; cursor: pointer; background: #eee; }
-        .tab.active { background: #fff; font-weight: bold; border-bottom: 3px solid var(--accent); }
-        
-        #panel-content { flex-grow: 1; overflow-y: auto; padding: 10px; }
-        
-        .upgrade-row {
+        .resource-pill {
+            background: #fff;
+            padding: 5px 15px;
+            border-radius: 20px;
+            border: 2px solid #e5e5e5;
+            display: flex; align-items: center; gap: 8px;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.1);
+            color: var(--text-dark);
+            font-weight: 800;
+            font-size: 1.1rem;
+        }
+
+        #bottom-ui {
+            height: 220px;
+            background: var(--ui-bg);
+            border-top: 4px solid #f0e6d2;
+            display: flex; flex-direction: column;
+            z-index: 200;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.1);
+        }
+
+        .tab-bar { display: flex; padding: 10px 10px 0 10px; gap: 5px; }
+        .tab {
+            flex: 1; text-align: center; padding: 12px;
+            background: #eee; border-radius: 10px 10px 0 0;
+            font-weight: bold; color: #888; cursor: pointer;
+            border-bottom: 4px solid transparent;
+        }
+        .tab.active {
+            background: #fff; color: var(--text-dark);
+            border-bottom: 4px solid var(--btn-orange);
+        }
+
+        #panel {
+            flex: 1; padding: 10px; overflow-y: auto; background: #fff;
+        }
+
+        .card {
             display: flex; justify-content: space-between; align-items: center;
-            background: #f8f9fa; border: 1px solid #ddd; padding: 8px; margin-bottom: 8px; border-radius: 6px;
+            background: #fff; border: 2px solid #f0f0f0;
+            padding: 10px; margin-bottom: 10px; border-radius: 12px;
         }
         .btn {
-            background: var(--accent); color: white; border: none; padding: 6px 12px;
-            border-radius: 4px; cursor: pointer; font-weight: bold;
+            background: var(--btn-orange); color: #fff; border: none;
+            padding: 10px 20px; border-radius: 10px;
+            font-weight: bold; font-family: inherit;
+            box-shadow: 0 4px 0 #e08e00; cursor: pointer;
         }
-        .btn.disabled { opacity: 0.5; pointer-events: none; background: #999; }
-        .btn.maxed { background: #2a9d8f; }
+        .btn:active { transform: translateY(4px); box-shadow: none; }
+        .btn.disabled { filter: grayscale(1); opacity: 0.5; pointer-events: none; }
 
-        /* Floating Text */
-        .float-money {
-            position: absolute; color: #2a9d8f; font-weight: bold; font-size: 14px;
-            animation: floatUp 1s forwards; z-index: 999;
+        /* Floating text */
+        .floater {
+            position: absolute; font-weight: 900;
+            color: var(--btn-orange); -webkit-text-stroke: 1px #fff;
+            animation: floatUp 1s forwards; pointer-events: none; z-index: 999;
         }
-        @keyframes floatUp { to { transform: translateY(-40px); opacity: 0; } }
+        @keyframes floatUp { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(-50px); opacity: 0; } }
 
     </style>
 </head>
 <body>
 
 <div id="app">
-    <div id="header">
-        <div class="stat">💎 <span id="gems">0</span></div>
-        <div style="font-size:0.9rem">STAGE 1: SANDWICH SHOP</div>
-        <div class="stat">🦴 <span id="money">0</span></div>
+    <div id="scenery-layer">
+        <div class="house-container">
+            <div class="house-roof"></div>
+            <div class="house-wall">
+                <div class="door"></div>
+            </div>
+        </div>
+        <div class="road"></div>
+        <div id="trees-container"></div>
+    </div>
+
+    <div id="top-ui">
+        <div class="resource-pill">
+            <span style="font-size:1.2rem">🦴</span> <span id="money">0</span>
+        </div>
+        <div class="resource-pill">
+            <span style="font-size:1.2rem">💎</span> <span id="gems">10</span>
+        </div>
     </div>
 
     <div id="game-layer">
-        <div class="zone-kitchen"></div>
-        <div class="counter-surface"></div>
-        
         </div>
 
-    <div id="controls">
-        <div id="tabs">
-            <div class="tab active" onclick="setTab('menu')">Menu</div>
+    <div id="bottom-ui">
+        <div class="tab-bar">
+            <div class="tab active" onclick="setTab('stations')">Kitchen</div>
             <div class="tab" onclick="setTab('staff')">Staff</div>
-            <div class="tab" onclick="setTab('shop')">Shop</div>
         </div>
-        <div id="panel-content">
+        <div id="panel">
             </div>
     </div>
 </div>
 
 <script>
 /**
- * DOG SNACK BAR: EXACT MECHANICS
- * * Core Loop:
- * 1. Customer enters -> Sits at Table.
- * 2. Order Bubble appears over Customer.
- * 3. Chef (Kitchen) sees order -> Walks to Station -> Cooks -> Places food on Counter.
- * 4. Server (Floor) sees food on Counter -> Walks to Counter -> Picks up -> Walks to Table.
- * 5. Customer eats (timer) -> Leaves Money -> Leaves.
+ * 🎨 DOG SNACK BAR: GRAPHIC EDITION
+ * Logic: Tycoon Style (Chef cooks -> Counter -> Server/Chef delivers -> Customer eats)
  */
 
-// --- CONFIGURATION ---
-
+// --- ASSETS & CONFIG ---
 const STATIONS = [
-    { id: 0, name: "Juice", emoji: "🧃", basePrice: 10, baseTime: 1000, x: 50, y: 50 },
-    { id: 1, name: "Donut", emoji: "🍩", basePrice: 250, baseTime: 3000, x: 180, y: 50 },
-    { id: 2, name: "Sandwich", emoji: "🥪", basePrice: 1000, baseTime: 5000, x: 310, y: 50 }
+    { id: 0, name: "Donut", emoji: "🍩", basePrice: 15, time: 1000, x: 80, y: 400, color: "blue" },
+    { id: 1, name: "Coffee", emoji: "☕", basePrice: 150, time: 2500, x: 280, y: 400, color: "pink" }
 ];
 
+// Visual "Checkered Tables" (Counters) relative to stations
+// In the screenshot, the checkered tables are where the food sits.
+const COUNTERS = [
+    { x: 50, y: 320, width: 130, color: "blue" }, // For Donut
+    { x: 250, y: 320, width: 130, color: "pink" }  // For Coffee
+];
+
+// Eating Tables (Scattered on grass)
 const TABLES = [
-    { id: 0, x: 80, y: 250 },
-    { id: 1, x: 220, y: 250 },
-    { id: 2, x: 360, y: 250 },
-    { id: 3, x: 150, y: 350 },
-    { id: 4, x: 290, y: 350 }
+    { id: 0, x: 60, y: 550 },
+    { id: 1, x: 300, y: 550 },
+    { id: 2, x: 180, y: 650 }
 ];
-
-const MILESTONES = [10, 25, 50, 75, 100]; // Levels where price multiplies
-const MILESTONE_MULTS = [2, 2, 2, 3, 5];  // The multipliers
 
 // --- STATE ---
-
 let state = {
-    money: 10,
-    gems: 0,
-    stationLevels: [1, 0, 0], // Level 0 means locked
-    chefs: [{id:0, x:50, y:120, state:'IDLE'}], // Starts with 1 Chef
-    servers: [], // Starts with 0 Servers (Chef does all if empty? No, guide says Part Timer needed usually, but we will make Chef serve if no servers)
-    inventory: [] // Costumes
+    money: 0,
+    gems: 10,
+    levels: [1, 0], // Station levels
+    staff: [
+        { type: 'chef', x: 80, y: 400, state: 'IDLE', speed: 3 }, // Start with 1 chef
+        { type: 'server', x: 200, y: 500, state: 'IDLE', speed: 4 } // Start with 1 server (Reference image has servers)
+    ]
 };
 
-// Runtime arrays
-let customers = []; 
-let activeOrders = []; // { tableId, stationId, status: 'PENDING' | 'COOKING' | 'READY' | 'SERVED' }
-let foodOnCounter = []; // { stationId, x, y }
-let floatingTexts = [];
+let customers = [];
+let orders = []; // { id, stationId, status: PENDING|COOKING|READY|SERVED, tableId }
+let floaters = [];
 
-// DOM Cache
+// DOM
 const gameLayer = document.getElementById('game-layer');
+const panel = document.getElementById('panel');
 const moneyEl = document.getElementById('money');
-const gemsEl = document.getElementById('gems');
-const panel = document.getElementById('panel-content');
+const treesContainer = document.getElementById('trees-container');
 
-let currentTab = 'menu';
-
-// --- INITIALIZATION ---
-
+// --- INIT ---
 function init() {
-    renderStaticWorld();
-    gameLoop();
-    uiLoop();
-    setInterval(spawnCustomer, 2500);
+    createDecor();
+    renderStaticGameElements();
+    
+    // Loops
+    setInterval(gameLoop, 30); // 30fps physics
+    setInterval(spawnCustomer, 3000); // Customer spawner
+    setInterval(uiUpdate, 200); // UI Refresh
+    
+    uiUpdate();
 }
 
-function renderStaticWorld() {
-    // Render Stations
-    STATIONS.forEach((st, idx) => {
+function createDecor() {
+    // Add trees (visual only)
+    const treePositions = [
+        {x: -40, y: 300}, {x: 380, y: 320}, 
+        {x: -20, y: 600}, {x: 350, y: 700},
+        {x: 360, y: 150}, {x: -50, y: 140}
+    ];
+    
+    treePositions.forEach(pos => {
+        let t = document.createElement('div');
+        t.className = 'tree';
+        t.style.left = pos.x + 'px';
+        t.style.top = pos.y + 'px';
+        t.innerHTML = `<div class="tree-top"></div>`;
+        treesContainer.appendChild(t);
+    });
+}
+
+function renderStaticGameElements() {
+    // 1. Render Counters (The Checkered Tables)
+    COUNTERS.forEach((c, idx) => {
         let el = document.createElement('div');
-        el.className = 'station';
-        el.style.left = st.x + 'px';
-        el.style.top = st.y + 'px';
-        el.id = `station-${idx}`;
-        el.innerHTML = `<div>${st.emoji}</div><div class="station-lvl" id="lvl-${idx}">Lvl ${state.stationLevels[idx]}</div>`;
-        if(state.stationLevels[idx] === 0) el.style.opacity = '0.5';
+        el.className = `serving-table ${c.color === 'blue' ? 'blue' : ''}`;
+        el.style.left = c.x + 'px';
+        el.style.top = c.y + 'px';
+        el.style.width = c.width + 'px';
+        // Add ID so we can place food on it later
+        el.id = `counter-${idx}`;
         gameLayer.appendChild(el);
     });
 
-    // Render Tables
-    TABLES.forEach((tbl, idx) => {
+    // 2. Render Cooking Stations (Machines behind counters)
+    STATIONS.forEach((s, idx) => {
         let el = document.createElement('div');
-        el.className = 'table';
-        el.style.left = tbl.x + 'px';
-        el.style.top = tbl.y + 'px';
+        el.className = 'station-area';
+        el.style.left = s.x + 'px';
+        el.style.top = s.y + 'px';
+        
+        let machine = document.createElement('div');
+        machine.className = 'machine';
+        machine.innerText = s.emoji;
+        el.appendChild(machine);
+        
+        // Level Tag
+        let tag = document.createElement('div');
+        tag.id = `lvl-tag-${idx}`;
+        tag.style.background = '#333'; tag.style.color='#fff'; 
+        tag.style.padding='2px 6px'; tag.style.borderRadius='10px';
+        tag.style.fontSize='0.7rem'; tag.style.marginTop='5px';
+        tag.innerText = `Lvl ${state.levels[idx]}`;
+        el.appendChild(tag);
+        
+        if(state.levels[idx] === 0) el.style.opacity = '0.4';
+        
+        gameLayer.appendChild(el);
+    });
+
+    // 3. Render Eating Tables
+    TABLES.forEach(t => {
+        let el = document.createElement('div');
+        el.className = 'serving-table'; // Reuse style for simplicity, or make round
+        el.style.borderRadius = '50%';
+        el.style.width = '60px'; el.style.height = '60px';
+        el.style.left = t.x + 'px';
+        el.style.top = t.y + 'px';
+        el.style.background = '#fff'; // White cloth
+        el.style.border = '2px solid #ddd';
         gameLayer.appendChild(el);
     });
     
-    // Render Staff (Initial)
-    updateStaffVisuals();
+    // 4. Render Staff
+    state.staff.forEach(s => createEntityDom(s));
 }
 
-// --- GAME LOOP ---
+function createEntityDom(ent) {
+    let el = document.createElement('div');
+    el.className = 'entity';
+    
+    // Shadow
+    let sh = document.createElement('div');
+    sh.className = 'shadow';
+    el.appendChild(sh);
+    
+    // Sprite
+    let sp = document.createElement('div');
+    sp.className = 'sprite';
+    // Chef = Cat with Hat (or Dog), Server = Dog with Bandana
+    if(ent.type === 'chef') sp.innerText = '👨‍🍳'; 
+    else if(ent.type === 'server') sp.innerText = '🐕'; 
+    else if(ent.type === 'customer') sp.innerText = ent.emoji;
+    
+    el.appendChild(sp);
+    
+    gameLayer.appendChild(el);
+    ent.el = el;
+    updateEntityPos(ent);
+}
+
+// --- LOGIC ---
 
 function gameLoop() {
-    updateLogic();
-    requestAnimationFrame(gameLoop);
-}
-
-function updateLogic() {
-    // 1. CHEF LOGIC
-    state.chefs.forEach(chef => {
-        if(chef.state === 'IDLE') {
-            // Find a PENDING order for an unlocked station
-            let job = activeOrders.find(o => o.status === 'PENDING' && state.stationLevels[o.stationId] > 0 && !o.chefAssigned);
-            if(job) {
-                job.chefAssigned = true;
-                chef.state = 'MOVING_TO_STATION';
-                chef.targetJob = job;
-                let st = STATIONS[job.stationId];
-                moveTo(chef, st.x, st.y + 60, () => {
-                    chef.state = 'COOKING';
-                    // Cooking Timer
-                    setTimeout(() => {
-                        // Cook Done
-                        chef.state = 'MOVING_TO_COUNTER';
-                        // Counter is at y=180 roughly
-                        moveTo(chef, chef.x, 170, () => {
-                            // Place Food
-                            spawnFoodOnCounter(job);
-                            job.status = 'READY';
-                            chef.state = 'IDLE';
-                            chef.targetJob = null;
-                        });
-                    }, 500); // Fast cooking for demo, real game uses st.baseTime
-                });
-            } else if (state.servers.length === 0) {
-                // FALLBACK: If no servers, Chef also serves (Solo Mode)
-                let readyFood = activeOrders.find(o => o.status === 'READY' && !o.serverAssigned);
-                if(readyFood) {
-                    readyFood.serverAssigned = true;
-                    chef.state = 'SERVING_PICKUP';
-                    moveTo(chef, chef.x, 170, () => {
-                        chef.state = 'SERVING_DELIVER';
-                        let tbl = TABLES[readyFood.tableId];
-                        // Pick up visual (attach food to chef)
-                        removeFoodVisual(readyFood); 
-                        moveTo(chef, tbl.x, tbl.y - 40, () => {
-                            // Delivered
-                            serveCustomer(readyFood);
-                            chef.state = 'IDLE';
-                        });
-                    });
-                }
-            }
+    // Staff Logic
+    state.staff.forEach(member => {
+        if(member.state === 'IDLE') {
+            if(member.type === 'chef') assignChefJob(member);
+            if(member.type === 'server') assignServerJob(member);
         }
-        updateEntityPosition(chef);
+        moveEntity(member);
     });
 
-    // 2. SERVER LOGIC
-    state.servers.forEach(server => {
-        if(server.state === 'IDLE') {
-            // Look for READY food
-            let job = activeOrders.find(o => o.status === 'READY' && !o.serverAssigned);
-            if(job) {
-                job.serverAssigned = true;
-                server.state = 'MOVING_TO_COUNTER';
-                // Find where the food is visually? 
-                // For simplicity, move to general counter area near station
-                let st = STATIONS[job.stationId];
-                moveTo(server, st.x, 200, () => {
-                    // Pick up
-                    removeFoodVisual(job);
-                    server.state = 'DELIVERING';
-                    let tbl = TABLES[job.tableId];
-                    moveTo(server, tbl.x, tbl.y - 40, () => {
-                        serveCustomer(job);
-                        server.state = 'IDLE';
-                    });
-                });
-            }
-        }
-        updateEntityPosition(server);
-    });
-
-    // 3. CUSTOMER LOGIC
+    // Customer Logic
     customers.forEach(c => {
-        updateEntityPosition(c);
+        moveEntity(c);
+        // Z-Index Sorting
+        if(c.el) c.el.style.zIndex = Math.floor(c.y);
     });
+    state.staff.forEach(s => { if(s.el) s.el.style.zIndex = Math.floor(s.y); });
 }
 
-// --- ENTITY HELPERS ---
-
-function moveTo(entity, tx, ty, callback) {
-    entity.targetX = tx;
-    entity.targetY = ty;
-    entity.onReach = callback;
-    entity.moving = true;
-}
-
-function updateEntityPosition(ent) {
-    if(!ent.el) {
-        // Create DOM if missing
-        let el = document.createElement('div');
-        el.className = 'entity';
-        el.innerText = ent.emoji || (ent.type === 'chef' ? '👨‍🍳' : (ent.type === 'server' ? '🐕' : '🐶'));
-        if(ent.type === 'chef') el.style.backgroundColor = '#fff';
-        if(ent.type === 'server') el.style.backgroundColor = '#8ecae6';
-        el.style.borderRadius = '50%';
-        el.style.border = '1px solid #000';
-        gameLayer.appendChild(el);
-        ent.el = el;
-        // Force init pos
-        ent.el.style.left = ent.x + 'px';
-        ent.el.style.top = ent.y + 'px';
-    }
-
-    if(ent.moving) {
-        let dx = ent.targetX - ent.x;
-        let dy = ent.targetY - ent.y;
-        let dist = Math.sqrt(dx*dx + dy*dy);
-        let speed = 4; // Movement speed
-
-        if(dist <= speed) {
-            ent.x = ent.targetX;
-            ent.y = ent.targetY;
-            ent.moving = false;
-            if(ent.onReach) {
-                let cb = ent.onReach;
-                ent.onReach = null;
-                cb();
-            }
-        } else {
-            ent.x += (dx/dist) * speed;
-            ent.y += (dy/dist) * speed;
-        }
-        ent.el.style.left = ent.x + 'px';
-        ent.el.style.top = ent.y + 'px';
-        ent.el.style.zIndex = Math.floor(ent.y); // Depth sort
-    }
-}
-
-// --- GAMEPLAY EVENTS ---
-
-function spawnCustomer() {
-    // Find empty table
-    let occupiedTables = customers.map(c => c.tableId);
-    let freeTables = TABLES.filter(t => !occupiedTables.includes(t.id));
-    
-    if(freeTables.length > 0 && customers.length < 5) {
-        let table = freeTables[Math.floor(Math.random() * freeTables.length)];
-        let c = {
-            x: 200, y: 600, // Start off screen bottom
-            targetX: table.x, targetY: table.y - 20,
-            tableId: table.id,
-            state: 'WALKING_IN',
-            type: 'customer',
-            emoji: ["🐶","🐕","🐩"][Math.floor(Math.random()*3)]
-        };
+function assignChefJob(chef) {
+    // Find Pending Order
+    let job = orders.find(o => o.status === 'PENDING' && state.levels[o.stationId] > 0 && !o.chefId);
+    if(job) {
+        job.chefId = chef;
+        chef.state = 'MOVING';
+        let st = STATIONS[job.stationId];
         
-        customers.push(c);
-        
-        moveTo(c, c.targetX, c.targetY, () => {
-            // Sat down
-            c.state = 'SITTING';
-            generateOrder(c);
+        // Move to Station
+        setTarget(chef, st.x + 10, st.y + 10, () => {
+            chef.state = 'COOKING';
+            // Cook Animation
+            setTimeout(() => {
+                // Done Cooking, Move to Counter
+                chef.state = 'MOVING';
+                let ctr = COUNTERS[job.stationId];
+                // Random spot on the counter
+                let dropX = ctr.x + 20 + Math.random() * (ctr.width - 40);
+                let dropY = ctr.y + 10;
+                
+                setTarget(chef, dropX, dropY + 40, () => {
+                    // Place Food
+                    job.status = 'READY';
+                    job.foodX = dropX; job.foodY = dropY;
+                    spawnFoodVisual(job);
+                    
+                    chef.state = 'IDLE'; // Job done
+                });
+            }, STATIONS[job.stationId].time); // Cook time
         });
     }
 }
 
-function generateOrder(customer) {
-    // Pick unlocked station
-    let unlocked = state.stationLevels.map((l, i) => l > 0 ? i : -1).filter(i => i !== -1);
-    if(unlocked.length === 0) return; // Should not happen
-
-    let stationId = unlocked[Math.floor(Math.random() * unlocked.length)];
-    
-    // Show Bubble
-    let bubble = document.createElement('div');
-    bubble.className = 'bubble';
-    bubble.innerText = STATIONS[stationId].emoji;
-    customer.el.appendChild(bubble);
-    customer.bubble = bubble;
-
-    activeOrders.push({
-        customer: customer,
-        tableId: customer.tableId,
-        stationId: stationId,
-        status: 'PENDING',
-        chefAssigned: false,
-        serverAssigned: false
-    });
+function assignServerJob(server) {
+    // Find Ready Food
+    let job = orders.find(o => o.status === 'READY' && !o.serverId);
+    if(job) {
+        job.serverId = server;
+        server.state = 'MOVING';
+        
+        // Move to Food on Counter
+        setTarget(server, job.foodX, job.foodY + 20, () => {
+            // Pick up
+            if(job.foodEl) job.foodEl.remove(); // Remove from counter
+            
+            // Deliver to Table
+            let table = TABLES[job.tableId];
+            server.state = 'MOVING';
+            setTarget(server, table.x + 10, table.y, () => {
+                // Delivered
+                job.status = 'SERVED';
+                customerEat(job);
+                server.state = 'IDLE';
+            });
+        });
+    }
 }
 
-function spawnFoodOnCounter(job) {
-    let st = STATIONS[job.stationId];
+function customerEat(order) {
+    let cust = customers.find(c => c.tableId === order.tableId);
+    if(cust) {
+        // Change bubble to Yum
+        if(cust.bubble) cust.bubble.innerText = '😋';
+        
+        setTimeout(() => {
+            // Pay
+            let amt = STATIONS[order.stationId].basePrice * state.levels[order.stationId];
+            spawnFloater(cust.x, cust.y, `+${amt}`);
+            state.money += amt;
+            moneyEl.innerText = state.money;
+            
+            // Leave
+            cust.bubble.remove();
+            cust.state = 'MOVING';
+            setTarget(cust, 220, 900, () => { // Walk off screen
+                cust.el.remove();
+                customers = customers.filter(c => c !== cust);
+                // Free table
+                // (In this simple version, tables free up when cust leaves)
+            });
+            
+            // Remove order
+            orders = orders.filter(o => o !== order);
+            
+        }, 2000);
+    }
+}
+
+// --- MOVEMENT ---
+function setTarget(ent, x, y, cb) {
+    ent.targetX = x;
+    ent.targetY = y;
+    ent.onReach = cb;
+}
+
+function moveEntity(ent) {
+    if(ent.state !== 'MOVING' && ent.state !== 'WALKING_IN') return;
+    
+    let dx = ent.targetX - ent.x;
+    let dy = ent.targetY - ent.y;
+    let dist = Math.sqrt(dx*dx + dy*dy);
+    
+    let speed = ent.speed || 2;
+    
+    if(dist < speed) {
+        ent.x = ent.targetX;
+        ent.y = ent.targetY;
+        if(ent.onReach) {
+            let cb = ent.onReach;
+            ent.onReach = null;
+            cb();
+        }
+    } else {
+        ent.x += (dx/dist) * speed;
+        ent.y += (dy/dist) * speed;
+    }
+    updateEntityPos(ent);
+}
+
+function updateEntityPos(ent) {
+    if(ent.el) {
+        ent.el.style.left = ent.x + 'px';
+        ent.el.style.top = ent.y + 'px';
+    }
+}
+
+// --- SPAWNING ---
+function spawnCustomer() {
+    // Find free table
+    let occupied = customers.map(c => c.tableId);
+    let freeTable = TABLES.find(t => !occupied.includes(t.id));
+    
+    if(freeTable) {
+        let emojis = ['🐶', '🐕', '🐩', '🐺', '🦊'];
+        let c = {
+            type: 'customer',
+            emoji: emojis[Math.floor(Math.random()*emojis.length)],
+            x: 220, y: 190, // Start on road
+            targetX: freeTable.x + 10, targetY: freeTable.y - 30, // Sit at table
+            tableId: freeTable.id,
+            state: 'WALKING_IN',
+            speed: 2
+        };
+        
+        createEntityDom(c);
+        customers.push(c);
+        
+        c.onReach = () => {
+            c.state = 'SITTING';
+            // Order
+            let stationIdx = Math.floor(Math.random() * STATIONS.length);
+            // Only order unlocked
+            if(state.levels[stationIdx] === 0) stationIdx = 0; 
+            
+            orders.push({
+                stationId: stationIdx,
+                tableId: c.tableId,
+                status: 'PENDING'
+            });
+            
+            // Bubble
+            let b = document.createElement('div');
+            b.className = 'bubble';
+            b.innerHTML = `${STATIONS[stationIdx].emoji} <span style="font-size:0.7em; color:#888">1</span>`;
+            c.el.appendChild(b);
+            c.bubble = b;
+        }
+    }
+}
+
+function spawnFoodVisual(job) {
     let el = document.createElement('div');
-    el.className = 'entity';
-    el.style.width = '20px'; el.style.height = '20px';
-    el.style.fontSize = '16px';
-    el.innerText = st.emoji;
-    el.style.left = st.x + 'px';
-    el.style.top = '190px'; // Counter height
+    el.style.position = 'absolute';
+    el.innerText = STATIONS[job.stationId].emoji;
+    el.style.fontSize = '1.5rem';
+    el.style.left = job.foodX + 'px';
+    el.style.top = job.foodY + 'px';
+    el.style.zIndex = 100;
+    el.style.animation = 'popIn 0.3s';
     gameLayer.appendChild(el);
     job.foodEl = el;
 }
 
-function removeFoodVisual(job) {
-    if(job.foodEl) {
-        job.foodEl.remove();
-        job.foodEl = null;
-    }
+function spawnFloater(x, y, txt) {
+    let f = document.createElement('div');
+    f.className = 'floater';
+    f.innerText = txt;
+    f.style.left = x + 'px';
+    f.style.top = (y - 50) + 'px';
+    gameLayer.appendChild(f);
+    setTimeout(() => f.remove(), 1000);
 }
 
-function serveCustomer(job) {
-    // Customer eats
-    if(job.customer.bubble) job.customer.bubble.innerText = "😋";
-    
-    setTimeout(() => {
-        // Finished eating, Pay money
-        let revenue = calculatePrice(job.stationId);
-        addMoney(revenue);
-        
-        // Float Text
-        let ft = document.createElement('div');
-        ft.className = 'float-money';
-        ft.innerText = `+${formatMoney(revenue)}`;
-        ft.style.left = job.customer.x + 'px';
-        ft.style.top = job.customer.y + 'px';
-        gameLayer.appendChild(ft);
-        setTimeout(()=>ft.remove(), 1000);
-
-        // Leave
-        let c = job.customer;
-        c.bubble.remove();
-        moveTo(c, 250, 600, () => {
-            c.el.remove();
-            customers = customers.filter(cust => cust !== c);
-        });
-
-        // Remove order
-        activeOrders = activeOrders.filter(o => o !== job);
-
-    }, 1000); // Eating time
-}
-
-// --- ECONOMY ---
-
-function calculatePrice(stationId) {
-    let level = state.stationLevels[stationId];
-    let base = STATIONS[stationId].basePrice;
-    
-    // Calculate Multiplier based on Milestones
-    let multiplier = 1;
-    let milestoneAccum = 1;
-    
-    // Simple geometric growth for level
-    let levelGrow = level; 
-
-    // Check milestones (Wiki Mechanics: x2 at lvl 10, x2 at 25 etc)
-    MILESTONES.forEach((m, i) => {
-        if(level >= m) milestoneAccum *= MILESTONE_MULTS[i];
-    });
-
-    return Math.floor(base * levelGrow * milestoneAccum);
-}
-
-function getUpgradeCost(stationId) {
-    let level = state.stationLevels[stationId];
-    let base = STATIONS[stationId].basePrice;
-    if(level === 0) return base; // Unlock cost
-    
-    // Cost curve
-    return Math.floor(base * Math.pow(1.6, level));
-}
-
-function addMoney(amount) {
-    state.money += amount;
-    moneyEl.innerText = formatMoney(state.money);
-    uiLoop(); // Update buttons immediately
-}
-
-function formatMoney(num) {
-    if(num >= 1000000) return (num/1000000).toFixed(2) + 'm';
-    if(num >= 1000) return (num/1000).toFixed(1) + 'k';
-    return num;
-}
-
-// --- UI & CONTROLS ---
+// --- UI ---
+let currentTab = 'stations';
 
 function setTab(t) {
     currentTab = t;
+    uiUpdate();
     document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
-    document.querySelector(`.tab[onclick="setTab('${t}')"]`).forEach(el => el.classList.add('active')); // Note: simple selector hack
-    uiLoop();
+    event.target.classList.add('active');
 }
-// Fix tab selector
-document.querySelectorAll('.tab').forEach(el => {
-    el.addEventListener('click', function() {
-        document.querySelectorAll('.tab').forEach(e=>e.classList.remove('active'));
-        this.classList.add('active');
-    });
-});
 
-function uiLoop() {
+function uiUpdate() {
     panel.innerHTML = '';
     
-    if(currentTab === 'menu') {
-        STATIONS.forEach((st, idx) => {
-            let lvl = state.stationLevels[idx];
-            let cost = getUpgradeCost(idx);
-            let revenue = lvl > 0 ? calculatePrice(idx) : 0;
+    if(currentTab === 'stations') {
+        STATIONS.forEach((s, idx) => {
+            let lvl = state.levels[idx];
+            let cost = Math.floor(s.basePrice * Math.pow(1.5, lvl));
+            if(lvl === 0) cost = s.basePrice; // Unlock cost
             
-            // Check for next milestone
-            let nextMilestone = MILESTONES.find(m => m > lvl);
-            let milestoneText = nextMilestone ? `x${MILESTONE_MULTS[MILESTONES.indexOf(nextMilestone)]} at Lvl ${nextMilestone}` : "MAX";
-            
-            let div = document.createElement('div');
-            div.className = 'upgrade-row';
-            
-            let btnClass = state.money >= cost ? 'btn' : 'btn disabled';
-            let btnText = lvl === 0 ? 'Unlock' : 'Level Up';
-            
-            div.innerHTML = `
-                <div>
-                    <div style="font-weight:bold">${st.emoji} ${st.name} <span style="font-size:0.8rem; color:#666">Lvl ${lvl}</span></div>
-                    <div style="font-size:0.8rem; color:#2a9d8f">Earn: ${formatMoney(revenue)} 🦴 <span style="color:#e76f51">(${milestoneText})</span></div>
+            let card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="font-size:2rem">${s.emoji}</div>
+                    <div>
+                        <div style="font-weight:bold">${s.name}</div>
+                        <div style="font-size:0.8rem; color:#888">Lvl ${lvl}</div>
+                    </div>
                 </div>
-                <button class="${btnClass}" onclick="upgradeStation(${idx})">
-                    ${btnText} <br> ${formatMoney(cost)}
+                <button class="btn ${state.money < cost ? 'disabled' : ''}" onclick="upgradeStation(${idx}, ${cost})">
+                    ${lvl === 0 ? 'Unlock' : 'Up'} <br> 🦴${cost}
                 </button>
             `;
-            panel.appendChild(div);
+            panel.appendChild(card);
         });
-    } else if (currentTab === 'staff') {
-        // Hire Part Timer
-        let serverCost = (state.servers.length + 1) * 5000;
-        let hireBtn = state.money >= serverCost ? 'btn' : 'btn disabled';
-        
-        let div = document.createElement('div');
-        div.className = 'upgrade-row';
-        div.innerHTML = `
+    } else {
+        // Staff Tab
+        let cost = 500 * state.staff.length;
+        let card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
             <div>
-                <b>Hire Part-Timer</b><br>
-                <small>Carries food to tables</small>
+                <b>Hire Staff</b><br>
+                <small>Current: ${state.staff.length}</small>
             </div>
-            <button class="${hireBtn}" onclick="hireServer(${serverCost})">Hire ${formatMoney(serverCost)}</button>
+            <button class="btn ${state.money < cost ? 'disabled' : ''}" onclick="hireStaff(${cost})">
+                +1 🐕<br>🦴${cost}
+            </button>
         `;
-        panel.appendChild(div);
-        
-        let info = document.createElement('div');
-        info.innerHTML = `<p>Current Staff:<br>👨‍🍳 Chefs: ${state.chefs.length}<br>🐕 Servers: ${state.servers.length}</p>`;
-        panel.appendChild(info);
-    } else if (currentTab === 'shop') {
-        panel.innerHTML = '<div style="text-align:center; padding:20px; color:#777">Store coming in Stage 2</div>';
+        panel.appendChild(card);
     }
 }
 
-function upgradeStation(idx) {
-    let cost = getUpgradeCost(idx);
+function upgradeStation(idx, cost) {
     if(state.money >= cost) {
         state.money -= cost;
-        state.stationLevels[idx]++;
+        state.levels[idx]++;
+        moneyEl.innerText = state.money;
         
-        // Update visual level tag
-        let tag = document.getElementById(`lvl-${idx}`);
-        if(tag) tag.innerText = `Lvl ${state.stationLevels[idx]}`;
+        // Update visual tag
+        let tag = document.getElementById(`lvl-tag-${idx}`);
+        if(tag) tag.innerText = `Lvl ${state.levels[idx]}`;
         
-        // Update opacity if unlocked
-        if(state.stationLevels[idx] === 1) {
-            document.getElementById(`station-${idx}`).style.opacity = '1';
+        // Update opacity
+        if(state.levels[idx] === 1) {
+            // Re-render to show active
+             // (Lazy refresh via init logic would be better, but we just fix opacity here)
+             document.querySelectorAll('.station-area')[idx].style.opacity = '1';
         }
         
-        addMoney(0); // Refresh UI
+        uiUpdate();
     }
 }
 
-function hireServer(cost) {
+function hireStaff(cost) {
     if(state.money >= cost) {
         state.money -= cost;
-        // Spawn server
-        let s = { x: 100, y: 150, state: 'IDLE', type: 'server' };
-        state.servers.push(s);
-        updateStaffVisuals();
-        addMoney(0);
+        moneyEl.innerText = state.money;
+        // Alternate Chef/Server
+        let type = state.staff.filter(s => s.type === 'chef').length <= state.staff.filter(s => s.type === 'server').length ? 'chef' : 'server';
+        
+        let s = { type: type, x: 200, y: 200, state: 'IDLE', speed: 3 };
+        state.staff.push(s);
+        createEntityDom(s);
+        uiUpdate();
     }
 }
 
-function updateStaffVisuals() {
-    // Only needed if we want to redraw them, but updateEntityPosition handles creation
-}
-
-// Start
 init();
 
 </script>

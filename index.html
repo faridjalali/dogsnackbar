@@ -3,20 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dog Snack Bar: Ultimate Edition</title>
+    <title>Dog Snack Bar: Accurate Tycoon</title>
     <style>
         :root {
-            --primary: #f4a261;
-            --secondary: #2a9d8f;
-            --accent: #e76f51;
-            --bg: #e9c46a;
-            --panel: #ffffff;
-            --text: #264653;
+            --kitchen-bg: #ffe8d6;
+            --floor-bg: #ddbea9;
+            --counter-color: #6b705c;
+            --ui-bg: #fff;
+            --accent: #cb997e;
         }
 
         body {
             font-family: 'Segoe UI', sans-serif;
-            background-color: #333;
+            background-color: #222;
             margin: 0;
             display: flex;
             justify-content: center;
@@ -27,860 +26,633 @@
 
         #app {
             width: 100%;
-            max-width: 480px;
-            background-color: var(--bg);
+            max-width: 500px;
+            background-color: var(--floor-bg);
             display: flex;
             flex-direction: column;
             position: relative;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
         }
 
-        /* --- HEADER --- */
+        /* HUD */
         #header {
-            background: var(--panel);
-            padding: 10px 15px;
+            background: var(--ui-bg);
+            padding: 10px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            border-bottom: 2px solid #aaa;
             z-index: 100;
         }
+        .stat { font-weight: bold; font-size: 1.1rem; }
 
-        .currency {
-            display: flex;
-            align-items: center;
-            font-weight: bold;
-            font-size: 1.1rem;
-            margin-right: 15px;
-        }
-
-        .currency span { margin-right: 5px; }
-        
-        #gem-display { color: #9b5de5; }
-        #money-display { color: #2a9d8f; }
-
-        /* --- GAME VIEW (CANVAS LAYER) --- */
-        #game-view {
+        /* GAME WORLD */
+        #game-layer {
             flex-grow: 1;
             position: relative;
             overflow: hidden;
-            background: url('data:image/svg+xml;utf8,<svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><g fill="%23f4a261" fill-opacity="0.2"><path d="M0 0h40v40H0z"/></g></svg>');
         }
 
+        /* ZONES */
+        .zone-kitchen {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 200px;
+            background: var(--kitchen-bg);
+            border-bottom: 10px solid var(--counter-color);
+            box-sizing: border-box;
+        }
+
+        .counter-surface {
+            position: absolute;
+            top: 190px; left: 0; width: 100%; height: 10px;
+            z-index: 20;
+        }
+
+        /* ENTITIES */
         .entity {
             position: absolute;
-            transition: top 0.3s, left 0.3s;
+            width: 40px; height: 40px;
             display: flex;
-            flex-direction: column;
+            justify-content: center;
             align-items: center;
-            font-size: 2rem;
+            font-size: 24px;
+            transition: top 0.1s linear, left 0.1s linear;
             z-index: 10;
         }
-
+        
         .station {
             position: absolute;
-            background: var(--panel);
-            border: 3px solid var(--text);
-            border-radius: 10px;
-            width: 70px;
-            height: 70px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 1.8rem;
-            z-index: 5;
-            box-shadow: 0 5px 0 #888;
+            width: 60px; height: 60px;
+            background: #a5a58d;
+            border: 2px solid #6b705c;
+            border-radius: 8px;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            font-size: 1.5rem;
+        }
+        .station-lvl { font-size: 10px; background: #333; color: white; padding: 1px 4px; border-radius: 4px; margin-top: -5px; }
+
+        .table {
+            position: absolute;
+            width: 50px; height: 50px;
+            background: #b7b7a4;
+            border-radius: 50%;
+            border: 2px solid #6b705c;
         }
 
-        .station.locked { filter: grayscale(1); opacity: 0.6; }
-        .station-level {
+        /* BUBBLES */
+        .bubble {
             position: absolute;
-            bottom: -10px;
-            background: var(--text);
-            color: white;
-            font-size: 0.7rem;
+            top: -25px;
+            background: white;
             padding: 2px 6px;
             border-radius: 10px;
+            border: 1px solid #333;
+            font-size: 12px;
+            white-space: nowrap;
+            z-index: 100;
         }
 
-        /* --- UI OVERLAY (Floating Texts) --- */
-        .float-text {
-            position: absolute;
-            font-weight: bold;
-            pointer-events: none;
-            animation: floatUp 1.5s forwards;
-            z-index: 50;
-            text-shadow: 1px 1px 0 #fff;
-        }
-
-        @keyframes floatUp {
-            0% { transform: translateY(0); opacity: 1; }
-            100% { transform: translateY(-50px); opacity: 0; }
-        }
-
-        /* --- BOTTOM PANEL (TABS) --- */
-        #bottom-panel {
-            background: var(--panel);
-            height: 40%;
+        /* BOTTOM UI */
+        #controls {
+            height: 250px;
+            background: var(--ui-bg);
+            border-top: 2px solid #ccc;
             display: flex;
             flex-direction: column;
-            border-top: 2px solid var(--text);
             z-index: 200;
         }
-
-        #tabs {
-            display: flex;
-            background: #eee;
-        }
-
-        .tab {
-            flex: 1;
-            text-align: center;
-            padding: 10px;
-            cursor: pointer;
-            font-weight: bold;
-            border-bottom: 3px solid transparent;
-            color: #777;
-        }
-
-        .tab.active {
-            border-bottom-color: var(--secondary);
-            color: var(--secondary);
-            background: white;
-        }
-
-        #tab-content {
-            flex-grow: 1;
-            overflow-y: auto;
-            padding: 10px;
-            background: white;
-        }
-
-        /* --- CARDS --- */
-        .card {
-            background: #f8f9fa;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 10px;
-            margin-bottom: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .card-left { display: flex; flex-direction: column; }
-        .card-title { font-weight: bold; }
-        .card-desc { font-size: 0.8rem; color: #666; }
         
+        #tabs { display: flex; border-bottom: 1px solid #ddd; }
+        .tab { flex: 1; padding: 10px; text-align: center; cursor: pointer; background: #eee; }
+        .tab.active { background: #fff; font-weight: bold; border-bottom: 3px solid var(--accent); }
+        
+        #panel-content { flex-grow: 1; overflow-y: auto; padding: 10px; }
+        
+        .upgrade-row {
+            display: flex; justify-content: space-between; align-items: center;
+            background: #f8f9fa; border: 1px solid #ddd; padding: 8px; margin-bottom: 8px; border-radius: 6px;
+        }
         .btn {
-            background: var(--secondary);
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: bold;
-            box-shadow: 0 3px 0 #1d7066;
+            background: var(--accent); color: white; border: none; padding: 6px 12px;
+            border-radius: 4px; cursor: pointer; font-weight: bold;
         }
-        
-        .btn:active { transform: translateY(3px); box-shadow: none; }
-        .btn.disabled { background: #ccc; box-shadow: none; pointer-events: none; }
-        .btn.upgrade { background: var(--primary); box-shadow: 0 3px 0 #c47e44; }
+        .btn.disabled { opacity: 0.5; pointer-events: none; background: #999; }
+        .btn.maxed { background: #2a9d8f; }
 
-        /* --- COSTUME SHOP --- */
-        .chest-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
+        /* Floating Text */
+        .float-money {
+            position: absolute; color: #2a9d8f; font-weight: bold; font-size: 14px;
+            animation: floatUp 1s forwards; z-index: 999;
         }
-        
-        .chest {
-            background: #e9ecef;
-            padding: 20px;
-            text-align: center;
-            border-radius: 10px;
-            cursor: pointer;
-            border: 2px solid #adb5bd;
-        }
-        .chest:hover { border-color: var(--secondary); }
+        @keyframes floatUp { to { transform: translateY(-40px); opacity: 0; } }
 
-        /* --- MODAL (Level Complete) --- */
-        #modal-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.8);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-        
-        .modal {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            text-align: center;
-            width: 80%;
-            max-width: 300px;
-        }
-
-        .equipped-badge {
-            background: var(--accent);
-            color: white;
-            font-size: 0.7rem;
-            padding: 2px 5px;
-            border-radius: 4px;
-            margin-left: 5px;
-        }
     </style>
 </head>
 <body>
 
 <div id="app">
     <div id="header">
-        <div class="currency">
-            <span>💎</span> <span id="gem-display">0</span>
-        </div>
-        <div style="font-size: 0.9rem; font-weight:bold; color:#555" id="stage-name">Stage 1: Lemonade Stand</div>
-        <div class="currency">
-            <span>🦴</span> <span id="money-display">0</span>
-        </div>
+        <div class="stat">💎 <span id="gems">0</span></div>
+        <div style="font-size:0.9rem">STAGE 1: SANDWICH SHOP</div>
+        <div class="stat">🦴 <span id="money">0</span></div>
     </div>
 
-    <div id="game-view">
+    <div id="game-layer">
+        <div class="zone-kitchen"></div>
+        <div class="counter-surface"></div>
+        
         </div>
 
-    <div id="bottom-panel">
+    <div id="controls">
         <div id="tabs">
-            <div class="tab active" onclick="switchTab('upgrades')">Upgrades</div>
-            <div class="tab" onclick="switchTab('staff')">Staff & Speed</div>
-            <div class="tab" onclick="switchTab('shop')">Costumes</div>
+            <div class="tab active" onclick="setTab('menu')">Menu</div>
+            <div class="tab" onclick="setTab('staff')">Staff</div>
+            <div class="tab" onclick="setTab('shop')">Shop</div>
         </div>
-        <div id="tab-content">
+        <div id="panel-content">
             </div>
-    </div>
-</div>
-
-<div id="modal-overlay">
-    <div class="modal">
-        <h2 id="modal-title">Stage Complete!</h2>
-        <p id="modal-desc">You are moving to a new area!</p>
-        <button class="btn" onclick="nextStage()">Travel ✈️</button>
     </div>
 </div>
 
 <script>
 /**
- * --- DATA & CONFIG ---
+ * DOG SNACK BAR: EXACT MECHANICS
+ * * Core Loop:
+ * 1. Customer enters -> Sits at Table.
+ * 2. Order Bubble appears over Customer.
+ * 3. Chef (Kitchen) sees order -> Walks to Station -> Cooks -> Places food on Counter.
+ * 4. Server (Floor) sees food on Counter -> Walks to Counter -> Picks up -> Walks to Table.
+ * 5. Customer eats (timer) -> Leaves Money -> Leaves.
  */
 
-const STAGES = [
-    { name: "Backyard Lemonade", bg: "#e9c46a", stations: [
-        { id: "s1", name: "Water", emoji: "💧", price: 10, payout: 2, time: 1000 },
-        { id: "s2", name: "Lemonade", emoji: "🍋", price: 500, payout: 50, time: 2000 },
-        { id: "s3", name: "Sandwich", emoji: "🥪", price: 5000, payout: 300, time: 4000 }
-    ]},
-    { name: "Downtown Coffee", bg: "#e0d6c8", stations: [
-        { id: "s1", name: "Espresso", emoji: "☕", price: 50, payout: 15, time: 1200 },
-        { id: "s2", name: "Donut", emoji: "🍩", price: 1500, payout: 150, time: 2500 },
-        { id: "s3", name: "Croissant", emoji: "🥐", price: 10000, payout: 800, time: 4500 }
-    ]},
-    { name: "Beach Bar", bg: "#8ecae6", stations: [
-        { id: "s1", name: "Soda", emoji: "🥤", price: 200, payout: 50, time: 1500 },
-        { id: "s2", name: "Hotdog", emoji: "🌭", price: 5000, payout: 600, time: 3000 },
-        { id: "s3", name: "Burger", emoji: "🍔", price: 25000, payout: 2000, time: 5000 }
-    ]}
+// --- CONFIGURATION ---
+
+const STATIONS = [
+    { id: 0, name: "Juice", emoji: "🧃", basePrice: 10, baseTime: 1000, x: 50, y: 50 },
+    { id: 1, name: "Donut", emoji: "🍩", basePrice: 250, baseTime: 3000, x: 180, y: 50 },
+    { id: 2, name: "Sandwich", emoji: "🥪", basePrice: 1000, baseTime: 5000, x: 310, y: 50 }
 ];
 
-const COSTUMES = [
-    { id: "none", name: "Naked", rarity: "Common", boost: 0, emoji: "🐕" },
-    { id: "c1", name: "Bowtie", rarity: "Common", boost: 0.2, emoji: "👔" }, // 20% boost
-    { id: "c2", name: "Chef Hat", rarity: "Rare", boost: 0.5, emoji: "👨‍🍳" }, // 50% boost
-    { id: "c3", name: "Super Dog", rarity: "Epic", boost: 1.5, emoji: "🦸" }, // 150% boost
-    { id: "c4", name: "King Crown", rarity: "Legendary", boost: 3.0, emoji: "👑" } // 300% boost
+const TABLES = [
+    { id: 0, x: 80, y: 250 },
+    { id: 1, x: 220, y: 250 },
+    { id: 2, x: 360, y: 250 },
+    { id: 3, x: 150, y: 350 },
+    { id: 4, x: 290, y: 350 }
 ];
 
-// Initial State
-let save = {
-    money: 0,
+const MILESTONES = [10, 25, 50, 75, 100]; // Levels where price multiplies
+const MILESTONE_MULTS = [2, 2, 2, 3, 5];  // The multipliers
+
+// --- STATE ---
+
+let state = {
+    money: 10,
     gems: 0,
-    stageIndex: 0,
-    inventory: ["none"], // costume IDs
-    equipped: "none",
-    stations: [1, 0, 0], // Level of each station (0 = locked)
-    automation: [false, false, false],
-    staffSpeed: 1, // Multiplier
-    staffCount: 1, // How many dogs working
-    lastSaveTime: Date.now()
+    stationLevels: [1, 0, 0], // Level 0 means locked
+    chefs: [{id:0, x:50, y:120, state:'IDLE'}], // Starts with 1 Chef
+    servers: [], // Starts with 0 Servers (Chef does all if empty? No, guide says Part Timer needed usually, but we will make Chef serve if no servers)
+    inventory: [] // Costumes
 };
 
-// Runtime State
-let customers = [];
-let staff = [];
-let foods = [];
-let currentTab = 'upgrades';
+// Runtime arrays
+let customers = []; 
+let activeOrders = []; // { tableId, stationId, status: 'PENDING' | 'COOKING' | 'READY' | 'SERVED' }
+let foodOnCounter = []; // { stationId, x, y }
+let floatingTexts = [];
 
-/**
- * --- ENGINE ---
- */
+// DOM Cache
+const gameLayer = document.getElementById('game-layer');
+const moneyEl = document.getElementById('money');
+const gemsEl = document.getElementById('gems');
+const panel = document.getElementById('panel-content');
+
+let currentTab = 'menu';
+
+// --- INITIALIZATION ---
 
 function init() {
-    loadGame();
-    setupUI();
-    
-    // Spawn initial staff
-    for(let i=0; i<save.staffCount; i++) spawnStaff(i);
-
-    // Game Loop
-    setInterval(tick, 50); // Physics/Logic
-    setInterval(customerSpawner, 2000); // Customer logic
-    setInterval(saveGame, 5000); // Auto save
+    renderStaticWorld();
+    gameLoop();
+    uiLoop();
+    setInterval(spawnCustomer, 2500);
 }
 
-function tick() {
-    // 1. Staff Logic (Find orders)
-    staff.forEach(dog => {
-        if(dog.state === 'idle') {
-            // Find a waiting customer that needs food from an unlocked station
-            // And ensure that station isn't already being worked by another dog (simple mutex)
-            // For simplicity in this version: Just find any waiting customer
-            let target = customers.find(c => c.state === 'waiting' && !c.beingServed);
-            if(target) {
-                const stationIdx = target.order;
-                const stData = STAGES[save.stageIndex].stations[stationIdx];
-                
-                // Check if station is unlocked
-                if(save.stations[stationIdx] > 0) {
-                    // Check automation
-                    if(save.automation[stationIdx]) {
-                        // Automated: Food just appears, dog doesn't move
-                        // But for visual feedback, let's make the dog "deliver" it
-                        assignJob(dog, target, stData, true);
-                    } else {
-                        // Manual: Player must click station. 
-                        // Wait, idle games usually automate. 
-                        // Let's say: Staff auto-serves if "Staff" upgrade is high enough?
-                        // Actually, in Cat Snack Bar, chefs cook, part-timers carry.
-                        // Simplified: Dog walks to station, waits, walks to customer.
-                        assignJob(dog, target, stData, false);
-                    }
-                }
-            }
-        }
-        moveEntity(dog);
-    });
-
-    // 2. Customer Logic (Movement)
-    customers.forEach(c => moveEntity(c));
-
-    // 3. Food Logic
-    foods.forEach(f => moveEntity(f));
-}
-
-function assignJob(dog, customer, stationConfig, isInstant) {
-    dog.state = 'moving_to_station';
-    customer.beingServed = true;
-    dog.targetCustomer = customer;
-    
-    // Station positions
-    let stationY = 100 + (customer.order * 110);
-    dog.targetX = 80;
-    dog.targetY = stationY;
-    
-    // Cooking Time calculation
-    let cookTime = stationConfig.time / getSpeedMult();
-    dog.cookTime = cookTime;
-}
-
-function moveEntity(ent) {
-    if(!ent.el) return;
-
-    let dx = ent.targetX - ent.x;
-    let dy = ent.targetY - ent.y;
-    let dist = Math.sqrt(dx*dx + dy*dy);
-
-    if(dist < 5) {
-        ent.x = ent.targetX;
-        ent.y = ent.targetY;
-        onArrive(ent);
-    } else {
-        let speed = 5 * (ent.type === 'dog' ? getSpeedMult() : 1);
-        ent.x += (dx/dist) * speed;
-        ent.y += (dy/dist) * speed;
-    }
-    
-    ent.el.style.left = ent.x + 'px';
-    ent.el.style.top = ent.y + 'px';
-    
-    // Z-index based on Y
-    ent.el.style.zIndex = Math.floor(ent.y);
-}
-
-function onArrive(ent) {
-    if(ent.type === 'dog') {
-        if(ent.state === 'moving_to_station') {
-            // Arrived at station, start cooking
-            ent.state = 'cooking';
-            // Show progress bar logic here if desired
-            setTimeout(() => {
-                // Cook finished
-                ent.state = 'delivering';
-                ent.targetX = ent.targetCustomer.x - 40;
-                ent.targetY = ent.targetCustomer.y;
-                
-                // Create food visual
-                createFood(ent.x, ent.y, ent.targetCustomer);
-                
-            }, ent.cookTime);
-        } else if (ent.state === 'delivering') {
-            // Job done
-            ent.state = 'idle';
-            ent.targetX = 150; // Return to waiting area
-            ent.targetY = 200;
-        }
-    } else if (ent.type === 'food') {
-        // Food hit customer
-        let customer = ent.target;
-        if(customer && customers.includes(customer)) {
-            payout(customer);
-        }
-        ent.el.remove();
-        foods = foods.filter(f => f !== ent);
-    }
-}
-
-function createFood(x, y, customer) {
-    let el = document.createElement('div');
-    el.className = 'entity';
-    el.innerText = STAGES[save.stageIndex].stations[customer.order].emoji;
-    el.style.fontSize = "1.5rem";
-    document.getElementById('game-view').appendChild(el);
-    
-    foods.push({
-        el: el,
-        x: x, y: y,
-        targetX: customer.x,
-        targetY: customer.y,
-        target: customer,
-        type: 'food'
-    });
-}
-
-function payout(customer) {
-    let stIndex = customer.order;
-    let stLvl = save.stations[stIndex];
-    let base = STAGES[save.stageIndex].stations[stIndex].payout;
-    
-    // Formula: Base * Level * CostumeMult
-    let costumeMult = 1 + getCostumeBoost();
-    let amount = Math.floor(base * stLvl * costumeMult);
-    
-    addMoney(amount, customer.x, customer.y);
-    
-    // Customer leaves
-    customer.el.innerText = "🥰";
-    setTimeout(() => {
-        customer.el.remove();
-        customers = customers.filter(c => c !== customer);
-        // Check stage clear
-        checkProgress();
-    }, 500);
-}
-
-function customerSpawner() {
-    if(customers.length >= 6) return;
-
-    // Pick a random unlocked station to order from
-    let unlockedIndices = [];
-    save.stations.forEach((lvl, idx) => { if(lvl > 0) unlockedIndices.push(idx); });
-    
-    if(unlockedIndices.length === 0) return; // Game start
-
-    let orderIdx = unlockedIndices[Math.floor(Math.random() * unlockedIndices.length)];
-    
-    let el = document.createElement('div');
-    el.className = 'entity';
-    el.innerText = ["🐶", "🐕", "🐩", "🐕‍🦺", "🐺"][Math.floor(Math.random()*5)];
-    document.getElementById('game-view').appendChild(el);
-
-    let c = {
-        el: el,
-        x: -50, y: 100 + (orderIdx * 110) + 10,
-        targetX: 250, targetY: 100 + (orderIdx * 110) + 10,
-        state: 'waiting',
-        order: orderIdx,
-        beingServed: false,
-        type: 'customer'
-    };
-    customers.push(c);
-}
-
-function spawnStaff(index) {
-    let el = document.createElement('div');
-    el.className = 'entity';
-    
-    // Get equipped costume emoji
-    let costume = COSTUMES.find(c => c.id === save.equipped);
-    el.innerText = costume.emoji; // The dog emoji is in the costume definition
-    
-    document.getElementById('game-view').appendChild(el);
-    
-    staff.push({
-        el: el,
-        x: 150, y: 200,
-        targetX: 150, targetY: 200,
-        state: 'idle',
-        type: 'dog',
-        id: index
-    });
-}
-
-/**
- * --- UI & LOGIC ---
- */
-
-function switchTab(tab) {
-    currentTab = tab;
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll(`.tab[onclick="switchTab('${tab}')"]`).forEach(t => t.classList.add('active'));
-    renderTabContent();
-}
-
-function renderTabContent() {
-    const container = document.getElementById('tab-content');
-    container.innerHTML = '';
-
-    if(currentTab === 'upgrades') {
-        let currentStage = STAGES[save.stageIndex];
-        currentStage.stations.forEach((st, idx) => {
-            let lvl = save.stations[idx];
-            
-            // Card
-            let card = document.createElement('div');
-            card.className = 'card';
-            
-            if(lvl === 0) {
-                // Locked
-                let cost = st.price;
-                card.innerHTML = `
-                    <div class="card-left">
-                        <div class="card-title">Unlock ${st.name}</div>
-                        <div class="card-desc">New Station</div>
-                    </div>
-                    <button class="btn ${save.money < cost ? 'disabled' : ''}" onclick="buyStation(${idx}, ${cost})">Unlock $${cost}</button>
-                `;
-            } else {
-                // Upgrade
-                let cost = Math.floor(st.price * Math.pow(1.5, lvl));
-                let autoCost = st.price * 10;
-                let isMax = lvl >= 50; // simple max level for stage clear logic
-                
-                let btnHtml = isMax ? `<button class="btn disabled">MAX</button>` : 
-                              `<button class="btn upgrade ${save.money < cost ? 'disabled' : ''}" onclick="upgradeStation(${idx}, ${cost})">Lvl ${lvl+1} ($${cost})</button>`;
-                
-                // Automation Logic
-                let autoHtml = '';
-                if(!save.automation[idx]) {
-                    autoHtml = `<div style="margin-top:5px"><small>Automate: $${autoCost}</small> <button class="btn" style="padding:2px 8px; font-size:0.7rem" onclick="buyAuto(${idx}, ${autoCost})">Buy</button></div>`;
-                }
-
-                card.innerHTML = `
-                    <div class="card-left">
-                        <div class="card-title">${st.emoji} ${st.name}</div>
-                        <div class="card-desc">Pays: $${ Math.floor(st.payout * lvl * (1 + getCostumeBoost())) }</div>
-                        ${save.automation[idx] ? '<div style="color:green; font-size:0.7rem">⚡ Auto Enabled</div>' : autoHtml}
-                    </div>
-                    <div style="text-align:right">
-                        ${btnHtml}
-                    </div>
-                `;
-            }
-            container.appendChild(card);
-        });
-    } 
-    else if (currentTab === 'staff') {
-        // HIRE STAFF
-        let hireCost = Math.floor(1000 * Math.pow(2, save.staffCount));
-        container.innerHTML += `
-            <div class="card">
-                <div class="card-left">
-                    <div class="card-title">Hire Part-Timer</div>
-                    <div class="card-desc">Current: ${save.staffCount} dogs</div>
-                </div>
-                <button class="btn ${save.money < hireCost ? 'disabled' : ''}" onclick="hireStaff(${hireCost})">Hire $${hireCost}</button>
-            </div>
-        `;
-        
-        // SPEED UPGRADE
-        let speedCost = Math.floor(500 * save.staffSpeed * 10);
-        container.innerHTML += `
-            <div class="card">
-                <div class="card-left">
-                    <div class="card-title">Training (Speed)</div>
-                    <div class="card-desc">Current: ${save.staffSpeed.toFixed(1)}x</div>
-                </div>
-                <button class="btn ${save.money < speedCost ? 'disabled' : ''}" onclick="buySpeed(${speedCost})">Train $${speedCost}</button>
-            </div>
-        `;
-    }
-    else if (currentTab === 'shop') {
-        container.innerHTML = `
-            <div style="text-align:center; margin-bottom:10px; color:#555">
-                💎 Gems: ${save.gems} (Earn by completing stages!)
-            </div>
-            <div class="chest-grid">
-                <div class="chest" onclick="openChest(100)">
-                    <div style="font-size:2rem">💼</div>
-                    <b>Suitcase</b><br>
-                    <span style="color:#9b5de5">100 💎</span>
-                </div>
-                <div class="chest" onclick="openChest(500)">
-                    <div style="font-size:2rem">🧳</div>
-                    <b>Fancy Case</b><br>
-                    <span style="color:#9b5de5">500 💎</span>
-                </div>
-            </div>
-            <hr>
-            <h3>Wardrobe</h3>
-        `;
-        
-        COSTUMES.forEach(c => {
-            let unlocked = save.inventory.includes(c.id);
-            let equipped = save.equipped === c.id;
-            
-            if(unlocked) {
-                let btn = equipped ? `<span class="equipped-badge">Equipped</span>` : `<button class="btn" style="padding:4px 8px" onclick="equip('${c.id}')">Wear</button>`;
-                container.innerHTML += `
-                    <div class="card">
-                        <div style="font-size:2rem; margin-right:10px">${c.emoji}</div>
-                        <div class="card-left">
-                            <div class="card-title">${c.name} <span style="font-size:0.7rem; color:#888">${c.rarity}</span></div>
-                            <div class="card-desc">+${c.boost*100}% Profit</div>
-                        </div>
-                        ${btn}
-                    </div>
-                `;
-            }
-        });
-    }
-}
-
-function updateStationsView() {
-    let view = document.getElementById('game-view');
-    // We don't clear view because it contains entities. We only manage station divs.
-    // Actually, simple hack: Remove all .station elements and redraw.
-    document.querySelectorAll('.station').forEach(el => el.remove());
-    
-    let currentStage = STAGES[save.stageIndex];
-    
-    currentStage.stations.forEach((st, idx) => {
-        let lvl = save.stations[idx];
+function renderStaticWorld() {
+    // Render Stations
+    STATIONS.forEach((st, idx) => {
         let el = document.createElement('div');
-        el.className = 'station ' + (lvl===0?'locked':'');
-        el.style.left = "20px";
-        el.style.top = (100 + idx*110) + "px";
-        el.innerText = st.emoji;
-        
-        if(lvl > 0) {
-            let badge = document.createElement('div');
-            badge.className = 'station-level';
-            badge.innerText = lvl;
-            el.appendChild(badge);
-        } else {
-            let lock = document.createElement('div');
-            lock.style.position='absolute'; lock.style.fontSize='0.8rem';
-            lock.innerText = '🔒';
-            el.appendChild(lock);
-        }
-        
-        view.appendChild(el);
+        el.className = 'station';
+        el.style.left = st.x + 'px';
+        el.style.top = st.y + 'px';
+        el.id = `station-${idx}`;
+        el.innerHTML = `<div>${st.emoji}</div><div class="station-lvl" id="lvl-${idx}">Lvl ${state.stationLevels[idx]}</div>`;
+        if(state.stationLevels[idx] === 0) el.style.opacity = '0.5';
+        gameLayer.appendChild(el);
+    });
+
+    // Render Tables
+    TABLES.forEach((tbl, idx) => {
+        let el = document.createElement('div');
+        el.className = 'table';
+        el.style.left = tbl.x + 'px';
+        el.style.top = tbl.y + 'px';
+        gameLayer.appendChild(el);
     });
     
-    // Set Background
-    view.style.backgroundColor = currentStage.bg;
-    
-    // Update header
-    document.getElementById('stage-name').innerText = currentStage.name;
-    document.getElementById('money-display').innerText = formatNumber(save.money);
-    document.getElementById('gem-display').innerText = save.gems;
+    // Render Staff (Initial)
+    updateStaffVisuals();
 }
 
-/**
- * --- ACTIONS ---
- */
+// --- GAME LOOP ---
 
-function addMoney(amt, x, y) {
-    save.money += amt;
-    updateStationsView(); // Updates text
-    if(currentTab === 'upgrades' || currentTab === 'staff') renderTabContent();
+function gameLoop() {
+    updateLogic();
+    requestAnimationFrame(gameLoop);
+}
+
+function updateLogic() {
+    // 1. CHEF LOGIC
+    state.chefs.forEach(chef => {
+        if(chef.state === 'IDLE') {
+            // Find a PENDING order for an unlocked station
+            let job = activeOrders.find(o => o.status === 'PENDING' && state.stationLevels[o.stationId] > 0 && !o.chefAssigned);
+            if(job) {
+                job.chefAssigned = true;
+                chef.state = 'MOVING_TO_STATION';
+                chef.targetJob = job;
+                let st = STATIONS[job.stationId];
+                moveTo(chef, st.x, st.y + 60, () => {
+                    chef.state = 'COOKING';
+                    // Cooking Timer
+                    setTimeout(() => {
+                        // Cook Done
+                        chef.state = 'MOVING_TO_COUNTER';
+                        // Counter is at y=180 roughly
+                        moveTo(chef, chef.x, 170, () => {
+                            // Place Food
+                            spawnFoodOnCounter(job);
+                            job.status = 'READY';
+                            chef.state = 'IDLE';
+                            chef.targetJob = null;
+                        });
+                    }, 500); // Fast cooking for demo, real game uses st.baseTime
+                });
+            } else if (state.servers.length === 0) {
+                // FALLBACK: If no servers, Chef also serves (Solo Mode)
+                let readyFood = activeOrders.find(o => o.status === 'READY' && !o.serverAssigned);
+                if(readyFood) {
+                    readyFood.serverAssigned = true;
+                    chef.state = 'SERVING_PICKUP';
+                    moveTo(chef, chef.x, 170, () => {
+                        chef.state = 'SERVING_DELIVER';
+                        let tbl = TABLES[readyFood.tableId];
+                        // Pick up visual (attach food to chef)
+                        removeFoodVisual(readyFood); 
+                        moveTo(chef, tbl.x, tbl.y - 40, () => {
+                            // Delivered
+                            serveCustomer(readyFood);
+                            chef.state = 'IDLE';
+                        });
+                    });
+                }
+            }
+        }
+        updateEntityPosition(chef);
+    });
+
+    // 2. SERVER LOGIC
+    state.servers.forEach(server => {
+        if(server.state === 'IDLE') {
+            // Look for READY food
+            let job = activeOrders.find(o => o.status === 'READY' && !o.serverAssigned);
+            if(job) {
+                job.serverAssigned = true;
+                server.state = 'MOVING_TO_COUNTER';
+                // Find where the food is visually? 
+                // For simplicity, move to general counter area near station
+                let st = STATIONS[job.stationId];
+                moveTo(server, st.x, 200, () => {
+                    // Pick up
+                    removeFoodVisual(job);
+                    server.state = 'DELIVERING';
+                    let tbl = TABLES[job.tableId];
+                    moveTo(server, tbl.x, tbl.y - 40, () => {
+                        serveCustomer(job);
+                        server.state = 'IDLE';
+                    });
+                });
+            }
+        }
+        updateEntityPosition(server);
+    });
+
+    // 3. CUSTOMER LOGIC
+    customers.forEach(c => {
+        updateEntityPosition(c);
+    });
+}
+
+// --- ENTITY HELPERS ---
+
+function moveTo(entity, tx, ty, callback) {
+    entity.targetX = tx;
+    entity.targetY = ty;
+    entity.onReach = callback;
+    entity.moving = true;
+}
+
+function updateEntityPosition(ent) {
+    if(!ent.el) {
+        // Create DOM if missing
+        let el = document.createElement('div');
+        el.className = 'entity';
+        el.innerText = ent.emoji || (ent.type === 'chef' ? '👨‍🍳' : (ent.type === 'server' ? '🐕' : '🐶'));
+        if(ent.type === 'chef') el.style.backgroundColor = '#fff';
+        if(ent.type === 'server') el.style.backgroundColor = '#8ecae6';
+        el.style.borderRadius = '50%';
+        el.style.border = '1px solid #000';
+        gameLayer.appendChild(el);
+        ent.el = el;
+        // Force init pos
+        ent.el.style.left = ent.x + 'px';
+        ent.el.style.top = ent.y + 'px';
+    }
+
+    if(ent.moving) {
+        let dx = ent.targetX - ent.x;
+        let dy = ent.targetY - ent.y;
+        let dist = Math.sqrt(dx*dx + dy*dy);
+        let speed = 4; // Movement speed
+
+        if(dist <= speed) {
+            ent.x = ent.targetX;
+            ent.y = ent.targetY;
+            ent.moving = false;
+            if(ent.onReach) {
+                let cb = ent.onReach;
+                ent.onReach = null;
+                cb();
+            }
+        } else {
+            ent.x += (dx/dist) * speed;
+            ent.y += (dy/dist) * speed;
+        }
+        ent.el.style.left = ent.x + 'px';
+        ent.el.style.top = ent.y + 'px';
+        ent.el.style.zIndex = Math.floor(ent.y); // Depth sort
+    }
+}
+
+// --- GAMEPLAY EVENTS ---
+
+function spawnCustomer() {
+    // Find empty table
+    let occupiedTables = customers.map(c => c.tableId);
+    let freeTables = TABLES.filter(t => !occupiedTables.includes(t.id));
     
-    // Float text
-    if(x && y) {
+    if(freeTables.length > 0 && customers.length < 5) {
+        let table = freeTables[Math.floor(Math.random() * freeTables.length)];
+        let c = {
+            x: 200, y: 600, // Start off screen bottom
+            targetX: table.x, targetY: table.y - 20,
+            tableId: table.id,
+            state: 'WALKING_IN',
+            type: 'customer',
+            emoji: ["🐶","🐕","🐩"][Math.floor(Math.random()*3)]
+        };
+        
+        customers.push(c);
+        
+        moveTo(c, c.targetX, c.targetY, () => {
+            // Sat down
+            c.state = 'SITTING';
+            generateOrder(c);
+        });
+    }
+}
+
+function generateOrder(customer) {
+    // Pick unlocked station
+    let unlocked = state.stationLevels.map((l, i) => l > 0 ? i : -1).filter(i => i !== -1);
+    if(unlocked.length === 0) return; // Should not happen
+
+    let stationId = unlocked[Math.floor(Math.random() * unlocked.length)];
+    
+    // Show Bubble
+    let bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    bubble.innerText = STATIONS[stationId].emoji;
+    customer.el.appendChild(bubble);
+    customer.bubble = bubble;
+
+    activeOrders.push({
+        customer: customer,
+        tableId: customer.tableId,
+        stationId: stationId,
+        status: 'PENDING',
+        chefAssigned: false,
+        serverAssigned: false
+    });
+}
+
+function spawnFoodOnCounter(job) {
+    let st = STATIONS[job.stationId];
+    let el = document.createElement('div');
+    el.className = 'entity';
+    el.style.width = '20px'; el.style.height = '20px';
+    el.style.fontSize = '16px';
+    el.innerText = st.emoji;
+    el.style.left = st.x + 'px';
+    el.style.top = '190px'; // Counter height
+    gameLayer.appendChild(el);
+    job.foodEl = el;
+}
+
+function removeFoodVisual(job) {
+    if(job.foodEl) {
+        job.foodEl.remove();
+        job.foodEl = null;
+    }
+}
+
+function serveCustomer(job) {
+    // Customer eats
+    if(job.customer.bubble) job.customer.bubble.innerText = "😋";
+    
+    setTimeout(() => {
+        // Finished eating, Pay money
+        let revenue = calculatePrice(job.stationId);
+        addMoney(revenue);
+        
+        // Float Text
         let ft = document.createElement('div');
-        ft.className = 'float-text';
-        ft.innerText = "+$" + formatNumber(amt);
-        ft.style.left = x + 'px';
-        ft.style.top = y + 'px';
-        ft.style.color = '#2a9d8f';
-        document.getElementById('game-view').appendChild(ft);
-        setTimeout(() => ft.remove(), 1500);
-    }
+        ft.className = 'float-money';
+        ft.innerText = `+${formatMoney(revenue)}`;
+        ft.style.left = job.customer.x + 'px';
+        ft.style.top = job.customer.y + 'px';
+        gameLayer.appendChild(ft);
+        setTimeout(()=>ft.remove(), 1000);
+
+        // Leave
+        let c = job.customer;
+        c.bubble.remove();
+        moveTo(c, 250, 600, () => {
+            c.el.remove();
+            customers = customers.filter(cust => cust !== c);
+        });
+
+        // Remove order
+        activeOrders = activeOrders.filter(o => o !== job);
+
+    }, 1000); // Eating time
 }
 
-function buyStation(idx, cost) {
-    if(save.money >= cost) {
-        save.money -= cost;
-        save.stations[idx] = 1;
-        updateStationsView();
-        renderTabContent();
-    }
-}
+// --- ECONOMY ---
 
-function upgradeStation(idx, cost) {
-    if(save.money >= cost) {
-        save.money -= cost;
-        save.stations[idx]++;
-        updateStationsView();
-        renderTabContent();
-        checkProgress();
-    }
-}
+function calculatePrice(stationId) {
+    let level = state.stationLevels[stationId];
+    let base = STATIONS[stationId].basePrice;
+    
+    // Calculate Multiplier based on Milestones
+    let multiplier = 1;
+    let milestoneAccum = 1;
+    
+    // Simple geometric growth for level
+    let levelGrow = level; 
 
-function buyAuto(idx, cost) {
-    if(save.money >= cost) {
-        save.money -= cost;
-        save.automation[idx] = true;
-        renderTabContent();
-    }
-}
-
-function hireStaff(cost) {
-    if(save.money >= cost) {
-        save.money -= cost;
-        save.staffCount++;
-        spawnStaff(save.staffCount-1);
-        renderTabContent();
-    }
-}
-
-function buySpeed(cost) {
-    if(save.money >= cost) {
-        save.money -= cost;
-        save.staffSpeed += 0.2;
-        renderTabContent();
-    }
-}
-
-function openChest(cost) {
-    if(save.gems >= cost) {
-        save.gems -= cost;
-        // Random costume
-        let pool = COSTUMES.filter(c => c.id !== 'none');
-        let item = pool[Math.floor(Math.random() * pool.length)];
-        
-        if(!save.inventory.includes(item.id)) {
-            save.inventory.push(item.id);
-            alert(`You got: ${item.name}!`);
-        } else {
-            // Duplicate refund
-            let refund = Math.floor(cost * 0.2);
-            save.gems += refund;
-            alert(`Duplicate ${item.name}. Refunded ${refund} Gems.`);
-        }
-        updateStationsView();
-        renderTabContent();
-    } else {
-        alert("Not enough Gems!");
-    }
-}
-
-function equip(id) {
-    save.equipped = id;
-    // Update staff visuals
-    staff.forEach(d => {
-        let costume = COSTUMES.find(c => c.id === id);
-        d.el.innerText = costume.emoji;
+    // Check milestones (Wiki Mechanics: x2 at lvl 10, x2 at 25 etc)
+    MILESTONES.forEach((m, i) => {
+        if(level >= m) milestoneAccum *= MILESTONE_MULTS[i];
     });
-    renderTabContent();
+
+    return Math.floor(base * levelGrow * milestoneAccum);
 }
 
-/**
- * --- PROGRESSION ---
- */
-
-function checkProgress() {
-    // If all unlocked stations are level 50+, complete stage
-    // For MVP, lets say if Station 3 is unlocked and Level 25
-    let lastStation = save.stations[2];
-    if(lastStation >= 25) {
-        document.getElementById('modal-overlay').style.display = 'flex';
-    }
+function getUpgradeCost(stationId) {
+    let level = state.stationLevels[stationId];
+    let base = STATIONS[stationId].basePrice;
+    if(level === 0) return base; // Unlock cost
+    
+    // Cost curve
+    return Math.floor(base * Math.pow(1.6, level));
 }
 
-function nextStage() {
-    if(save.stageIndex < STAGES.length - 1) {
-        save.stageIndex++;
-        // Reward Gems
-        save.gems += 50;
-        // Soft Reset
-        save.money = 0;
-        save.stations = [1, 0, 0];
-        save.automation = [false, false, false];
-        // Keep staff/costumes
-        
-        document.getElementById('modal-overlay').style.display = 'none';
-        updateStationsView();
-        renderTabContent();
-    } else {
-        alert("You beat the current version of the game! Prestige coming soon.");
-        document.getElementById('modal-overlay').style.display = 'none';
-    }
+function addMoney(amount) {
+    state.money += amount;
+    moneyEl.innerText = formatMoney(state.money);
+    uiLoop(); // Update buttons immediately
 }
 
-/**
- * --- UTILS ---
- */
-
-function getCostumeBoost() {
-    let c = COSTUMES.find(x => x.id === save.equipped);
-    return c ? c.boost : 0;
-}
-
-function getSpeedMult() {
-    return save.staffSpeed;
-}
-
-function formatNumber(num) {
-    if(num >= 1000000) return (num/1000000).toFixed(1) + 'M';
+function formatMoney(num) {
+    if(num >= 1000000) return (num/1000000).toFixed(2) + 'm';
     if(num >= 1000) return (num/1000).toFixed(1) + 'k';
     return num;
 }
 
-function saveGame() {
-    save.lastSaveTime = Date.now();
-    localStorage.setItem('dogSnackBarSave', JSON.stringify(save));
+// --- UI & CONTROLS ---
+
+function setTab(t) {
+    currentTab = t;
+    document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+    document.querySelector(`.tab[onclick="setTab('${t}')"]`).forEach(el => el.classList.add('active')); // Note: simple selector hack
+    uiLoop();
+}
+// Fix tab selector
+document.querySelectorAll('.tab').forEach(el => {
+    el.addEventListener('click', function() {
+        document.querySelectorAll('.tab').forEach(e=>e.classList.remove('active'));
+        this.classList.add('active');
+    });
+});
+
+function uiLoop() {
+    panel.innerHTML = '';
+    
+    if(currentTab === 'menu') {
+        STATIONS.forEach((st, idx) => {
+            let lvl = state.stationLevels[idx];
+            let cost = getUpgradeCost(idx);
+            let revenue = lvl > 0 ? calculatePrice(idx) : 0;
+            
+            // Check for next milestone
+            let nextMilestone = MILESTONES.find(m => m > lvl);
+            let milestoneText = nextMilestone ? `x${MILESTONE_MULTS[MILESTONES.indexOf(nextMilestone)]} at Lvl ${nextMilestone}` : "MAX";
+            
+            let div = document.createElement('div');
+            div.className = 'upgrade-row';
+            
+            let btnClass = state.money >= cost ? 'btn' : 'btn disabled';
+            let btnText = lvl === 0 ? 'Unlock' : 'Level Up';
+            
+            div.innerHTML = `
+                <div>
+                    <div style="font-weight:bold">${st.emoji} ${st.name} <span style="font-size:0.8rem; color:#666">Lvl ${lvl}</span></div>
+                    <div style="font-size:0.8rem; color:#2a9d8f">Earn: ${formatMoney(revenue)} 🦴 <span style="color:#e76f51">(${milestoneText})</span></div>
+                </div>
+                <button class="${btnClass}" onclick="upgradeStation(${idx})">
+                    ${btnText} <br> ${formatMoney(cost)}
+                </button>
+            `;
+            panel.appendChild(div);
+        });
+    } else if (currentTab === 'staff') {
+        // Hire Part Timer
+        let serverCost = (state.servers.length + 1) * 5000;
+        let hireBtn = state.money >= serverCost ? 'btn' : 'btn disabled';
+        
+        let div = document.createElement('div');
+        div.className = 'upgrade-row';
+        div.innerHTML = `
+            <div>
+                <b>Hire Part-Timer</b><br>
+                <small>Carries food to tables</small>
+            </div>
+            <button class="${hireBtn}" onclick="hireServer(${serverCost})">Hire ${formatMoney(serverCost)}</button>
+        `;
+        panel.appendChild(div);
+        
+        let info = document.createElement('div');
+        info.innerHTML = `<p>Current Staff:<br>👨‍🍳 Chefs: ${state.chefs.length}<br>🐕 Servers: ${state.servers.length}</p>`;
+        panel.appendChild(info);
+    } else if (currentTab === 'shop') {
+        panel.innerHTML = '<div style="text-align:center; padding:20px; color:#777">Store coming in Stage 2</div>';
+    }
 }
 
-function loadGame() {
-    let data = localStorage.getItem('dogSnackBarSave');
-    if(data) {
-        let loaded = JSON.parse(data);
-        save = {...save, ...loaded};
+function upgradeStation(idx) {
+    let cost = getUpgradeCost(idx);
+    if(state.money >= cost) {
+        state.money -= cost;
+        state.stationLevels[idx]++;
         
-        // Offline Earnings
-        let now = Date.now();
-        let diff = now - save.lastSaveTime;
-        if(diff > 10000) { // more than 10 seconds
-            let seconds = diff / 1000;
-            // Rough calc: 10% of last station payout per second
-            let earn = Math.floor(seconds * (save.stations[0] * 5)); 
-            if(earn > 0) {
-                save.money += earn;
-                alert(`Welcome back! You earned $${formatNumber(earn)} while away.`);
-            }
+        // Update visual level tag
+        let tag = document.getElementById(`lvl-${idx}`);
+        if(tag) tag.innerText = `Lvl ${state.stationLevels[idx]}`;
+        
+        // Update opacity if unlocked
+        if(state.stationLevels[idx] === 1) {
+            document.getElementById(`station-${idx}`).style.opacity = '1';
         }
+        
+        addMoney(0); // Refresh UI
     }
-    updateStationsView();
+}
+
+function hireServer(cost) {
+    if(state.money >= cost) {
+        state.money -= cost;
+        // Spawn server
+        let s = { x: 100, y: 150, state: 'IDLE', type: 'server' };
+        state.servers.push(s);
+        updateStaffVisuals();
+        addMoney(0);
+    }
+}
+
+function updateStaffVisuals() {
+    // Only needed if we want to redraw them, but updateEntityPosition handles creation
 }
 
 // Start

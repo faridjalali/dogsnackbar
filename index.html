@@ -3,19 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Dog Snack Bar: Garden Tycoon</title>
+    <title>Dog Snack Bar: Landscape Park</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Varela+Round&display=swap');
 
         :root {
-            --grass-color: #b8d8be;
-            --road-color: #a8a29e;
-            --house-wall: #ffadad;
-            --house-roof: #ff85a1;
+            --bg-color: #b8d8be;
             --ui-bg: #fffbf0;
             --btn-orange: #ffb703;
-            --btn-blue: #8ecae6;
             --text-dark: #4a4e69;
+            --panel-width: 300px;
         }
 
         body {
@@ -31,79 +28,37 @@
 
         #app {
             width: 100%;
-            max-width: 450px; /* Mobile width */
-            background-color: var(--grass-color);
+            height: 100%;
             display: flex;
-            flex-direction: column;
-            position: relative;
+            background-color: var(--bg-color);
             box-shadow: 0 0 40px rgba(0,0,0,0.5);
         }
 
-        /* --- SCENERY (CSS ART) --- */
-        #scenery-layer {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none;
-            overflow: hidden;
-        }
-
-        .road {
-            position: absolute;
-            top: 180px; left: 0; width: 100%; height: 60px;
-            background: var(--road-color);
-            border-top: 4px solid #888;
-            border-bottom: 4px solid #888;
-        }
-
-        /* The House */
-        .house-container {
-            position: absolute;
-            top: 20px; left: 50%;
-            transform: translateX(-50%);
-            width: 280px; height: 180px;
-        }
-        .house-roof {
-            width: 0; height: 0;
-            border-left: 150px solid transparent;
-            border-right: 150px solid transparent;
-            border-bottom: 100px solid var(--house-roof);
-            position: absolute; top: 0; left: -10px;
-            filter: drop-shadow(0 5px 0 rgba(0,0,0,0.1));
-        }
-        .house-wall {
-            width: 240px; height: 100px;
-            background: var(--house-wall);
-            position: absolute; bottom: 0; left: 20px;
-            border: 4px solid #e56b6f;
-            border-bottom: none;
-            display: flex; justify-content: center; align-items: flex-end;
-        }
-        .door {
-            width: 60px; height: 80px;
-            background: #6d4c41;
-            border: 3px solid #3e2723;
-            border-radius: 5px 5px 0 0;
-        }
-
-        /* Trees */
-        .tree {
-            position: absolute;
-            z-index: 50; /* Above road, below UI */
-        }
-        .tree-top {
-            width: 80px; height: 80px;
-            background: #55a630;
-            border-radius: 50%;
-            border: 4px solid #2b5c12;
-            box-shadow: inset -10px -10px 0 rgba(0,0,0,0.1);
-        }
-
-        /* --- GAME ENTITIES --- */
-        #game-layer {
+        /* --- LANDSCAPE LAYOUT --- */
+        #game-container {
             flex-grow: 1;
             position: relative;
             overflow: hidden;
+            /* The park image as background */
+            background-image: url('image_4.png'); 
+            background-size: cover;
+            background-position: center;
+        }
+
+        #sidebar {
+            width: var(--panel-width);
+            background: var(--ui-bg);
+            border-left: 4px solid #f0e6d2;
+            display: flex; flex-direction: column;
+            z-index: 200;
+            box-shadow: -5px 0 20px rgba(0,0,0,0.1);
+        }
+
+        /* --- GAME ENTITIES & STATIONS --- */
+        #game-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             z-index: 10;
+            pointer-events: none; /* Allow clicks to pass through for testing if needed */
         }
 
         .entity {
@@ -111,142 +66,98 @@
             display: flex; flex-direction: column;
             align-items: center; justify-content: center;
             transition: top 0.1s linear, left 0.1s linear;
+            /* Simple scale for isometric depth effect */
+            transform-origin: bottom center;
         }
         
         .shadow {
-            position: absolute; bottom: 0;
-            width: 30px; height: 10px;
-            background: rgba(0,0,0,0.2);
-            border-radius: 50%;
+            position: absolute; bottom: 0; width: 30px; height: 10px;
+            background: rgba(0,0,0,0.2); border-radius: 50%;
         }
-
         .sprite {
-            font-size: 2.5rem;
-            position: relative; bottom: 5px;
-            z-index: 2;
+            font-size: 2.5rem; position: relative; bottom: 5px; z-index: 2;
         }
 
-        /* Stations (Kitchen) */
+        /* Stations placed on the wooden stalls */
         .station-area {
             position: absolute;
             width: 70px; height: 90px;
             display: flex; flex-direction: column; align-items: center;
+            transform: scale(0.8); /* Adjust scale to fit scene */
         }
         .machine {
-            width: 50px; height: 50px;
-            background: #a98467;
-            border: 3px solid #5d4037;
-            border-radius: 8px;
+            width: 50px; height: 50px; background: #a98467;
+            border: 3px solid #5d4037; border-radius: 8px;
             display: flex; align-items: center; justify-content: center;
-            font-size: 1.5rem;
-            position: relative;
+            font-size: 1.5rem; position: relative;
             box-shadow: 0 4px 0 #3e2723;
         }
-        .machine::after { /* Smoke/Steam hint */
-            content: ''; position: absolute; top: -10px; right: -5px;
-            width: 10px; height: 10px; background: #fff; border-radius: 50%; opacity: 0.5;
-        }
+        .machine::after { content: ''; position: absolute; top: -10px; right: -5px; width: 10px; height: 10px; background: #fff; border-radius: 50%; opacity: 0.5; }
 
-        /* The Checkered Serving Tables (From Screenshot) */
+        /* Serving Tables */
         .serving-table {
-            position: absolute;
-            width: 100px; height: 40px;
+            position: absolute; width: 80px; height: 40px;
             background-color: #fff;
-            background-image: 
-                linear-gradient(45deg, #ffcdb2 25%, transparent 25%, transparent 75%, #ffcdb2 75%, #ffcdb2), 
-                linear-gradient(45deg, #ffcdb2 25%, transparent 25%, transparent 75%, #ffcdb2 75%, #ffcdb2);
-            background-position: 0 0, 10px 10px;
-            background-size: 20px 20px;
-            border: 2px solid #e5989b;
-            border-radius: 6px;
+            background-image: linear-gradient(45deg, #ffcdb2 25%, transparent 25%, transparent 75%, #ffcdb2 75%, #ffcdb2), linear-gradient(45deg, #ffcdb2 25%, transparent 25%, transparent 75%, #ffcdb2 75%, #ffcdb2);
+            background-position: 0 0, 10px 10px; background-size: 20px 20px;
+            border: 2px solid #e5989b; border-radius: 6px;
             box-shadow: 0 5px 0 rgba(0,0,0,0.2);
+            transform: scale(0.8);
         }
         .serving-table.blue {
-            background-image: 
-                linear-gradient(45deg, #bde0fe 25%, transparent 25%, transparent 75%, #bde0fe 75%, #bde0fe), 
-                linear-gradient(45deg, #bde0fe 25%, transparent 25%, transparent 75%, #bde0fe 75%, #bde0fe);
+            background-image: linear-gradient(45deg, #bde0fe 25%, transparent 25%, transparent 75%, #bde0fe 75%, #bde0fe), linear-gradient(45deg, #bde0fe 25%, transparent 25%, transparent 75%, #bde0fe 75%, #bde0fe);
             border-color: #a2d2ff;
         }
 
         /* Bubbles */
         .bubble {
-            position: absolute; top: -50px;
-            background: #fff; padding: 5px 10px;
-            border-radius: 15px;
-            border: 2px solid #333;
-            font-weight: bold; font-size: 0.9rem;
-            white-space: nowrap; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            z-index: 100;
+            position: absolute; top: -50px; background: #fff; padding: 5px 10px;
+            border-radius: 15px; border: 2px solid #333;
+            font-weight: bold; font-size: 0.9rem; white-space: nowrap;
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 100;
             display: flex; align-items: center; gap: 5px;
         }
-        .bubble::after {
-            content: ''; position: absolute; bottom: -6px; left: 50%; margin-left: -6px;
-            border-width: 6px 6px 0; border-style: solid; border-color: #333 transparent;
-        }
+        .bubble::after { content: ''; position: absolute; bottom: -6px; left: 50%; margin-left: -6px; border-width: 6px 6px 0; border-style: solid; border-color: #333 transparent; }
         @keyframes popIn { from { transform: scale(0); } to { transform: scale(1); } }
 
-        /* --- UI OVERLAY --- */
+        /* --- UI & SIDEBAR --- */
         #top-ui {
-            position: absolute; top: 10px; left: 0; width: 100%;
-            display: flex; justify-content: center; gap: 10px;
-            z-index: 200;
+            position: absolute; top: 10px; left: 20px;
+            display: flex; gap: 10px; z-index: 200;
         }
         .resource-pill {
-            background: #fff;
-            padding: 5px 15px;
-            border-radius: 20px;
-            border: 2px solid #e5e5e5;
-            display: flex; align-items: center; gap: 8px;
-            box-shadow: 0 4px 0 rgba(0,0,0,0.1);
-            color: var(--text-dark);
-            font-weight: 800;
-            font-size: 1.1rem;
+            background: #fff; padding: 5px 15px; border-radius: 20px;
+            border: 2px solid #e5e5e5; display: flex; align-items: center; gap: 8px;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.1); color: var(--text-dark);
+            font-weight: 800; font-size: 1.1rem;
         }
 
-        #bottom-ui {
-            height: 220px;
-            background: var(--ui-bg);
-            border-top: 4px solid #f0e6d2;
-            display: flex; flex-direction: column;
-            z-index: 200;
-            box-shadow: 0 -5px 20px rgba(0,0,0,0.1);
-        }
-
-        .tab-bar { display: flex; padding: 10px 10px 0 10px; gap: 5px; }
+        .tab-bar { display: flex; padding: 10px 10px 0 10px; gap: 5px; flex-shrink: 0; }
         .tab {
-            flex: 1; text-align: center; padding: 12px;
-            background: #eee; border-radius: 10px 10px 0 0;
-            font-weight: bold; color: #888; cursor: pointer;
-            border-bottom: 4px solid transparent;
+            flex: 1; text-align: center; padding: 12px; background: #eee;
+            border-radius: 10px 10px 0 0; font-weight: bold; color: #888;
+            cursor: pointer; border-bottom: 4px solid transparent;
         }
-        .tab.active {
-            background: #fff; color: var(--text-dark);
-            border-bottom: 4px solid var(--btn-orange);
-        }
+        .tab.active { background: #fff; color: var(--text-dark); border-bottom: 4px solid var(--btn-orange); }
 
-        #panel {
-            flex: 1; padding: 10px; overflow-y: auto; background: #fff;
-        }
-
+        #panel { flex: 1; padding: 10px; overflow-y: auto; background: #fff; }
         .card {
             display: flex; justify-content: space-between; align-items: center;
-            background: #fff; border: 2px solid #f0f0f0;
-            padding: 10px; margin-bottom: 10px; border-radius: 12px;
+            background: #fff; border: 2px solid #f0f0f0; padding: 10px;
+            margin-bottom: 10px; border-radius: 12px;
         }
         .btn {
             background: var(--btn-orange); color: #fff; border: none;
-            padding: 10px 20px; border-radius: 10px;
-            font-weight: bold; font-family: inherit;
-            box-shadow: 0 4px 0 #e08e00; cursor: pointer;
+            padding: 10px 20px; border-radius: 10px; font-weight: bold;
+            font-family: inherit; box-shadow: 0 4px 0 #e08e00; cursor: pointer;
         }
         .btn:active { transform: translateY(4px); box-shadow: none; }
         .btn.disabled { filter: grayscale(1); opacity: 0.5; pointer-events: none; }
 
-        /* Floating text */
         .floater {
-            position: absolute; font-weight: 900;
-            color: var(--btn-orange); -webkit-text-stroke: 1px #fff;
-            animation: floatUp 1s forwards; pointer-events: none; z-index: 999;
+            position: absolute; font-weight: 900; color: var(--btn-orange);
+            -webkit-text-stroke: 1px #fff; animation: floatUp 1s forwards;
+            pointer-events: none; z-index: 999;
         }
         @keyframes floatUp { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(-50px); opacity: 0; } }
 
@@ -255,30 +166,21 @@
 <body>
 
 <div id="app">
-    <div id="scenery-layer">
-        <div class="house-container">
-            <div class="house-roof"></div>
-            <div class="house-wall">
-                <div class="door"></div>
+    <div id="game-container">
+        <div id="top-ui">
+            <div class="resource-pill">
+                <span style="font-size:1.2rem">🦴</span> <span id="money">0</span>
+            </div>
+            <div class="resource-pill">
+                <span style="font-size:1.2rem">💎</span> <span id="gems">10</span>
             </div>
         </div>
-        <div class="road"></div>
-        <div id="trees-container"></div>
+
+        <div id="game-layer">
+            </div>
     </div>
 
-    <div id="top-ui">
-        <div class="resource-pill">
-            <span style="font-size:1.2rem">🦴</span> <span id="money">0</span>
-        </div>
-        <div class="resource-pill">
-            <span style="font-size:1.2rem">💎</span> <span id="gems">10</span>
-        </div>
-    </div>
-
-    <div id="game-layer">
-        </div>
-
-    <div id="bottom-ui">
+    <div id="sidebar">
         <div class="tab-bar">
             <div class="tab active" onclick="setTab('stations')">Kitchen</div>
             <div class="tab" onclick="setTab('staff')">Staff</div>
@@ -290,28 +192,28 @@
 
 <script>
 /**
- * 🎨 DOG SNACK BAR: GRAPHIC EDITION
+ * 🎨 DOG SNACK BAR: LANDSCAPE PARK EDITION
  * Logic: Tycoon Style (Chef cooks -> Counter -> Server/Chef delivers -> Customer eats)
  */
 
-// --- ASSETS & CONFIG ---
+// --- ASSETS & CONFIG (Mapped to Park Layout) ---
+// Positions are relative to the top-left of the game-container
 const STATIONS = [
-    { id: 0, name: "Donut", emoji: "🍩", basePrice: 15, time: 1000, x: 80, y: 400, color: "blue" },
-    { id: 1, name: "Coffee", emoji: "☕", basePrice: 150, time: 2500, x: 280, y: 400, color: "pink" }
+    { id: 0, name: "Donut", emoji: "🍩", basePrice: 15, time: 1000, x: 180, y: 200, color: "blue" }, // Top-left stall
+    { id: 1, name: "Coffee", emoji: "☕", basePrice: 150, time: 2500, x: 580, y: 200, color: "pink" } // Top-right stall
 ];
 
-// Visual "Checkered Tables" (Counters) relative to stations
-// In the screenshot, the checkered tables are where the food sits.
+// Visual "Checkered Tables" (Counters)
 const COUNTERS = [
-    { x: 50, y: 320, width: 130, color: "blue" }, // For Donut
-    { x: 250, y: 320, width: 130, color: "pink" }  // For Coffee
+    { x: 160, y: 280, width: 110, color: "blue" }, // In front of Donut
+    { x: 560, y: 280, width: 110, color: "pink" }  // In front of Coffee
 ];
 
-// Eating Tables (Scattered on grass)
+// Eating Tables (Scattered on grass patches)
 const TABLES = [
-    { id: 0, x: 60, y: 550 },
-    { id: 1, x: 300, y: 550 },
-    { id: 2, x: 180, y: 650 }
+    { id: 0, x: 350, y: 350 }, // Center grass
+    { id: 1, x: 150, y: 500 }, // Bottom-left grass
+    { id: 2, x: 600, y: 500 }  // Bottom-right grass
 ];
 
 // --- STATE ---
@@ -320,66 +222,44 @@ let state = {
     gems: 10,
     levels: [1, 0], // Station levels
     staff: [
-        { type: 'chef', x: 80, y: 400, state: 'IDLE', speed: 3 }, // Start with 1 chef
-        { type: 'server', x: 200, y: 500, state: 'IDLE', speed: 4 } // Start with 1 server (Reference image has servers)
+        { type: 'chef', x: 200, y: 250, state: 'IDLE', speed: 3 },
+        { type: 'server', x: 400, y: 400, state: 'IDLE', speed: 4 }
     ]
 };
 
 let customers = [];
-let orders = []; // { id, stationId, status: PENDING|COOKING|READY|SERVED, tableId }
+let orders = [];
 let floaters = [];
 
 // DOM
 const gameLayer = document.getElementById('game-layer');
 const panel = document.getElementById('panel');
 const moneyEl = document.getElementById('money');
-const treesContainer = document.getElementById('trees-container');
 
 // --- INIT ---
 function init() {
-    createDecor();
     renderStaticGameElements();
     
-    // Loops
-    setInterval(gameLoop, 30); // 30fps physics
-    setInterval(spawnCustomer, 3000); // Customer spawner
-    setInterval(uiUpdate, 200); // UI Refresh
+    setInterval(gameLoop, 30);
+    setInterval(spawnCustomer, 3000);
+    setInterval(uiUpdate, 200);
     
     uiUpdate();
 }
 
-function createDecor() {
-    // Add trees (visual only)
-    const treePositions = [
-        {x: -40, y: 300}, {x: 380, y: 320}, 
-        {x: -20, y: 600}, {x: 350, y: 700},
-        {x: 360, y: 150}, {x: -50, y: 140}
-    ];
-    
-    treePositions.forEach(pos => {
-        let t = document.createElement('div');
-        t.className = 'tree';
-        t.style.left = pos.x + 'px';
-        t.style.top = pos.y + 'px';
-        t.innerHTML = `<div class="tree-top"></div>`;
-        treesContainer.appendChild(t);
-    });
-}
-
 function renderStaticGameElements() {
-    // 1. Render Counters (The Checkered Tables)
+    // 1. Render Counters
     COUNTERS.forEach((c, idx) => {
         let el = document.createElement('div');
         el.className = `serving-table ${c.color === 'blue' ? 'blue' : ''}`;
         el.style.left = c.x + 'px';
         el.style.top = c.y + 'px';
         el.style.width = c.width + 'px';
-        // Add ID so we can place food on it later
         el.id = `counter-${idx}`;
         gameLayer.appendChild(el);
     });
 
-    // 2. Render Cooking Stations (Machines behind counters)
+    // 2. Render Stations
     STATIONS.forEach((s, idx) => {
         let el = document.createElement('div');
         el.className = 'station-area';
@@ -391,7 +271,6 @@ function renderStaticGameElements() {
         machine.innerText = s.emoji;
         el.appendChild(machine);
         
-        // Level Tag
         let tag = document.createElement('div');
         tag.id = `lvl-tag-${idx}`;
         tag.style.background = '#333'; tag.style.color='#fff'; 
@@ -401,19 +280,18 @@ function renderStaticGameElements() {
         el.appendChild(tag);
         
         if(state.levels[idx] === 0) el.style.opacity = '0.4';
-        
         gameLayer.appendChild(el);
     });
 
     // 3. Render Eating Tables
     TABLES.forEach(t => {
         let el = document.createElement('div');
-        el.className = 'serving-table'; // Reuse style for simplicity, or make round
+        el.className = 'serving-table';
         el.style.borderRadius = '50%';
-        el.style.width = '60px'; el.style.height = '60px';
+        el.style.width = '50px'; el.style.height = '50px';
         el.style.left = t.x + 'px';
         el.style.top = t.y + 'px';
-        el.style.background = '#fff'; // White cloth
+        el.style.background = '#fff';
         el.style.border = '2px solid #ddd';
         gameLayer.appendChild(el);
     });
@@ -426,19 +304,15 @@ function createEntityDom(ent) {
     let el = document.createElement('div');
     el.className = 'entity';
     
-    // Shadow
     let sh = document.createElement('div');
     sh.className = 'shadow';
     el.appendChild(sh);
     
-    // Sprite
     let sp = document.createElement('div');
     sp.className = 'sprite';
-    // Chef = Cat with Hat (or Dog), Server = Dog with Bandana
     if(ent.type === 'chef') sp.innerText = '👨‍🍳'; 
     else if(ent.type === 'server') sp.innerText = '🐕'; 
     else if(ent.type === 'customer') sp.innerText = ent.emoji;
-    
     el.appendChild(sp);
     
     gameLayer.appendChild(el);
@@ -447,7 +321,6 @@ function createEntityDom(ent) {
 }
 
 // --- LOGIC ---
-
 function gameLoop() {
     // Staff Logic
     state.staff.forEach(member => {
@@ -461,62 +334,59 @@ function gameLoop() {
     // Customer Logic
     customers.forEach(c => {
         moveEntity(c);
-        // Z-Index Sorting
-        if(c.el) c.el.style.zIndex = Math.floor(c.y);
+        // Z-Index Sorting for Depth
+        if(c.el) {
+            c.el.style.zIndex = Math.floor(c.y);
+            // Scale based on Y for depth effect
+            let scale = 0.7 + (c.y / 800) * 0.3;
+            c.el.style.transform = `scale(${scale})`;
+        }
     });
-    state.staff.forEach(s => { if(s.el) s.el.style.zIndex = Math.floor(s.y); });
+    state.staff.forEach(s => { 
+        if(s.el) {
+            s.el.style.zIndex = Math.floor(s.y);
+            let scale = 0.7 + (s.y / 800) * 0.3;
+            s.el.style.transform = `scale(${scale})`;
+        }
+    });
 }
 
 function assignChefJob(chef) {
-    // Find Pending Order
     let job = orders.find(o => o.status === 'PENDING' && state.levels[o.stationId] > 0 && !o.chefId);
     if(job) {
         job.chefId = chef;
         chef.state = 'MOVING';
         let st = STATIONS[job.stationId];
         
-        // Move to Station
-        setTarget(chef, st.x + 10, st.y + 10, () => {
+        setTarget(chef, st.x + 10, st.y + 30, () => {
             chef.state = 'COOKING';
-            // Cook Animation
             setTimeout(() => {
-                // Done Cooking, Move to Counter
                 chef.state = 'MOVING';
                 let ctr = COUNTERS[job.stationId];
-                // Random spot on the counter
-                let dropX = ctr.x + 20 + Math.random() * (ctr.width - 40);
+                let dropX = ctr.x + 10 + Math.random() * (ctr.width - 30);
                 let dropY = ctr.y + 10;
                 
-                setTarget(chef, dropX, dropY + 40, () => {
-                    // Place Food
+                setTarget(chef, dropX, dropY + 30, () => {
                     job.status = 'READY';
                     job.foodX = dropX; job.foodY = dropY;
                     spawnFoodVisual(job);
-                    
-                    chef.state = 'IDLE'; // Job done
+                    chef.state = 'IDLE';
                 });
-            }, STATIONS[job.stationId].time); // Cook time
+            }, STATIONS[job.stationId].time);
         });
     }
 }
 
 function assignServerJob(server) {
-    // Find Ready Food
     let job = orders.find(o => o.status === 'READY' && !o.serverId);
     if(job) {
         job.serverId = server;
         server.state = 'MOVING';
-        
-        // Move to Food on Counter
-        setTarget(server, job.foodX, job.foodY + 20, () => {
-            // Pick up
-            if(job.foodEl) job.foodEl.remove(); // Remove from counter
-            
-            // Deliver to Table
+        setTarget(server, job.foodX, job.foodY + 30, () => {
+            if(job.foodEl) job.foodEl.remove();
             let table = TABLES[job.tableId];
             server.state = 'MOVING';
-            setTarget(server, table.x + 10, table.y, () => {
-                // Delivered
+            setTarget(server, table.x + 10, table.y - 10, () => {
                 job.status = 'SERVED';
                 customerEat(job);
                 server.state = 'IDLE';
@@ -528,74 +398,50 @@ function assignServerJob(server) {
 function customerEat(order) {
     let cust = customers.find(c => c.tableId === order.tableId);
     if(cust) {
-        // Change bubble to Yum
         if(cust.bubble) cust.bubble.innerText = '😋';
-        
         setTimeout(() => {
-            // Pay
             let amt = STATIONS[order.stationId].basePrice * state.levels[order.stationId];
             spawnFloater(cust.x, cust.y, `+${amt}`);
             state.money += amt;
             moneyEl.innerText = state.money;
             
-            // Leave
             cust.bubble.remove();
             cust.state = 'MOVING';
-            setTarget(cust, 220, 900, () => { // Walk off screen
+            setTarget(cust, -100, 500, () => { // Walk off screen left
                 cust.el.remove();
                 customers = customers.filter(c => c !== cust);
-                // Free table
-                // (In this simple version, tables free up when cust leaves)
             });
-            
-            // Remove order
             orders = orders.filter(o => o !== order);
-            
         }, 2000);
     }
 }
 
 // --- MOVEMENT ---
 function setTarget(ent, x, y, cb) {
-    ent.targetX = x;
-    ent.targetY = y;
-    ent.onReach = cb;
+    ent.targetX = x; ent.targetY = y; ent.onReach = cb;
 }
 
 function moveEntity(ent) {
     if(ent.state !== 'MOVING' && ent.state !== 'WALKING_IN') return;
-    
-    let dx = ent.targetX - ent.x;
-    let dy = ent.targetY - ent.y;
+    let dx = ent.targetX - ent.x; let dy = ent.targetY - ent.y;
     let dist = Math.sqrt(dx*dx + dy*dy);
-    
     let speed = ent.speed || 2;
     
     if(dist < speed) {
-        ent.x = ent.targetX;
-        ent.y = ent.targetY;
-        if(ent.onReach) {
-            let cb = ent.onReach;
-            ent.onReach = null;
-            cb();
-        }
+        ent.x = ent.targetX; ent.y = ent.targetY;
+        if(ent.onReach) { let cb = ent.onReach; ent.onReach = null; cb(); }
     } else {
-        ent.x += (dx/dist) * speed;
-        ent.y += (dy/dist) * speed;
+        ent.x += (dx/dist) * speed; ent.y += (dy/dist) * speed;
     }
     updateEntityPos(ent);
 }
 
 function updateEntityPos(ent) {
-    if(ent.el) {
-        ent.el.style.left = ent.x + 'px';
-        ent.el.style.top = ent.y + 'px';
-    }
+    if(ent.el) { ent.el.style.left = ent.x + 'px'; ent.el.style.top = ent.y + 'px'; }
 }
 
 // --- SPAWNING ---
 function spawnCustomer() {
-    // Find free table
     let occupied = customers.map(c => c.tableId);
     let freeTable = TABLES.find(t => !occupied.includes(t.id));
     
@@ -604,8 +450,8 @@ function spawnCustomer() {
         let c = {
             type: 'customer',
             emoji: emojis[Math.floor(Math.random()*emojis.length)],
-            x: 220, y: 190, // Start on road
-            targetX: freeTable.x + 10, targetY: freeTable.y - 30, // Sit at table
+            x: -50, y: 400, // Start off screen left
+            targetX: freeTable.x + 10, targetY: freeTable.y - 20,
             tableId: freeTable.id,
             state: 'WALKING_IN',
             speed: 2
@@ -616,18 +462,11 @@ function spawnCustomer() {
         
         c.onReach = () => {
             c.state = 'SITTING';
-            // Order
             let stationIdx = Math.floor(Math.random() * STATIONS.length);
-            // Only order unlocked
             if(state.levels[stationIdx] === 0) stationIdx = 0; 
             
-            orders.push({
-                stationId: stationIdx,
-                tableId: c.tableId,
-                status: 'PENDING'
-            });
+            orders.push({ stationId: stationIdx, tableId: c.tableId, status: 'PENDING' });
             
-            // Bubble
             let b = document.createElement('div');
             b.className = 'bubble';
             b.innerHTML = `${STATIONS[stationIdx].emoji} <span style="font-size:0.7em; color:#888">1</span>`;
@@ -639,12 +478,9 @@ function spawnCustomer() {
 
 function spawnFoodVisual(job) {
     let el = document.createElement('div');
-    el.style.position = 'absolute';
-    el.innerText = STATIONS[job.stationId].emoji;
-    el.style.fontSize = '1.5rem';
-    el.style.left = job.foodX + 'px';
-    el.style.top = job.foodY + 'px';
-    el.style.zIndex = 100;
+    el.style.position = 'absolute'; el.innerText = STATIONS[job.stationId].emoji;
+    el.style.fontSize = '1.5rem'; el.style.left = job.foodX + 'px';
+    el.style.top = job.foodY + 'px'; el.style.zIndex = 100;
     el.style.animation = 'popIn 0.3s';
     gameLayer.appendChild(el);
     job.foodEl = el;
@@ -652,32 +488,27 @@ function spawnFoodVisual(job) {
 
 function spawnFloater(x, y, txt) {
     let f = document.createElement('div');
-    f.className = 'floater';
-    f.innerText = txt;
-    f.style.left = x + 'px';
-    f.style.top = (y - 50) + 'px';
+    f.className = 'floater'; f.innerText = txt;
+    f.style.left = x + 'px'; f.style.top = (y - 50) + 'px';
     gameLayer.appendChild(f);
     setTimeout(() => f.remove(), 1000);
 }
 
 // --- UI ---
 let currentTab = 'stations';
-
 function setTab(t) {
-    currentTab = t;
-    uiUpdate();
+    currentTab = t; uiUpdate();
     document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
     event.target.classList.add('active');
 }
 
 function uiUpdate() {
     panel.innerHTML = '';
-    
     if(currentTab === 'stations') {
         STATIONS.forEach((s, idx) => {
             let lvl = state.levels[idx];
             let cost = Math.floor(s.basePrice * Math.pow(1.5, lvl));
-            if(lvl === 0) cost = s.basePrice; // Unlock cost
+            if(lvl === 0) cost = s.basePrice;
             
             let card = document.createElement('div');
             card.className = 'card';
@@ -696,18 +527,12 @@ function uiUpdate() {
             panel.appendChild(card);
         });
     } else {
-        // Staff Tab
         let cost = 500 * state.staff.length;
         let card = document.createElement('div');
         card.className = 'card';
         card.innerHTML = `
-            <div>
-                <b>Hire Staff</b><br>
-                <small>Current: ${state.staff.length}</small>
-            </div>
-            <button class="btn ${state.money < cost ? 'disabled' : ''}" onclick="hireStaff(${cost})">
-                +1 🐕<br>🦴${cost}
-            </button>
+            <div><b>Hire Staff</b><br><small>Current: ${state.staff.length}</small></div>
+            <button class="btn ${state.money < cost ? 'disabled' : ''}" onclick="hireStaff(${cost})">+1 🐕<br>🦴${cost}</button>
         `;
         panel.appendChild(card);
     }
@@ -715,36 +540,21 @@ function uiUpdate() {
 
 function upgradeStation(idx, cost) {
     if(state.money >= cost) {
-        state.money -= cost;
-        state.levels[idx]++;
+        state.money -= cost; state.levels[idx]++;
         moneyEl.innerText = state.money;
-        
-        // Update visual tag
         let tag = document.getElementById(`lvl-tag-${idx}`);
         if(tag) tag.innerText = `Lvl ${state.levels[idx]}`;
-        
-        // Update opacity
-        if(state.levels[idx] === 1) {
-            // Re-render to show active
-             // (Lazy refresh via init logic would be better, but we just fix opacity here)
-             document.querySelectorAll('.station-area')[idx].style.opacity = '1';
-        }
-        
+        if(state.levels[idx] === 1) document.querySelectorAll('.station-area')[idx].style.opacity = '1';
         uiUpdate();
     }
 }
 
 function hireStaff(cost) {
     if(state.money >= cost) {
-        state.money -= cost;
-        moneyEl.innerText = state.money;
-        // Alternate Chef/Server
+        state.money -= cost; moneyEl.innerText = state.money;
         let type = state.staff.filter(s => s.type === 'chef').length <= state.staff.filter(s => s.type === 'server').length ? 'chef' : 'server';
-        
-        let s = { type: type, x: 200, y: 200, state: 'IDLE', speed: 3 };
-        state.staff.push(s);
-        createEntityDom(s);
-        uiUpdate();
+        let s = { type: type, x: 300, y: 300, state: 'IDLE', speed: 3 };
+        state.staff.push(s); createEntityDom(s); uiUpdate();
     }
 }
 
